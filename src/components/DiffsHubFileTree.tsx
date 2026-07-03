@@ -10,7 +10,7 @@ import { useFileTree } from '@pierre/trees/react';
 import { type CSSProperties, memo, useEffect, useRef, useState } from 'react';
 
 // Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
-// diffscope authors: inlined the FileTreePublicId type alias (upstream imported
+// peekdiff authors: inlined the FileTreePublicId type alias (upstream imported
 // it from a monorepo-relative path that does not exist outside the monorepo;
 // the published @pierre/trees does not re-export it from its entry, and it is
 // simply `type FileTreePublicId = string`).

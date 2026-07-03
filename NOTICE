@@ -1,5 +1,5 @@
-diffscope
-Copyright 2026 The diffscope authors
+peekdiff
+Copyright 2026 The peekdiff authors
 
 This product includes software developed by Pierre Computer Company as part of
 the DiffsHub project (https://github.com/pierrecomputer/pierre, apps/diffshub),
@@ -20,13 +20,13 @@ respective licenses:
     @pierre/icons      Apache-2.0
     @pierre/theme      MIT
 
-Modifications made by the diffscope authors relative to DiffsHub include, and
+Modifications made by the peekdiff authors relative to DiffsHub include, and
 are not limited to:
 
   - GitHub App authentication for viewing diffs from private repositories.
   - A client-side authenticated fetch path against the GitHub REST API so that
-    private source never passes through the diffscope server.
+    private source never passes through the peekdiff server.
 
 "DiffsHub" and "Pierre" are names/marks of Pierre Computer Company. The Apache
-License does not grant rights to those marks; diffscope does not use them as its
+License does not grant rights to those marks; peekdiff does not use them as its
 own product name or branding.

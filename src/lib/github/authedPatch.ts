@@ -2,7 +2,7 @@
 //
 // For private repositories the browser fetches the diff DIRECTLY from
 // api.github.com with the user access token, so private source never passes
-// through the diffscope server. api.github.com sends `access-control-allow-
+// through the peekdiff server. api.github.com sends `access-control-allow-
 // origin: *`, and the `application/vnd.github.diff` media type returns the same
 // unified-diff format the viewer's streaming parser already consumes.
 //

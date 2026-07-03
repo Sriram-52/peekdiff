@@ -1,5 +1,5 @@
 // Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
-// diffscope authors: added optional `authToken` so private diffs are fetched
+// peekdiff authors: added optional `authToken` so private diffs are fetched
 // directly from api.github.com in the browser (never through this server), and
 // a `needsAuth` signal when an unauthenticated load looks blocked by privacy.
 'use client';
@@ -65,7 +65,7 @@ const GENERIC_PATCH_LOAD_ERROR_MESSAGE =
 interface UsePatchLoaderOptions {
   // When set, private (and public) diffs are fetched straight from
   // api.github.com with this GitHub user access token instead of the public
-  // `/api/diff` proxy, so private source never reaches the diffscope server.
+  // `/api/diff` proxy, so private source never reaches the peekdiff server.
   authToken?: string | null;
   collapseMode: 'expanded' | 'collapsed';
   domain?: string;

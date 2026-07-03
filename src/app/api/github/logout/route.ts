@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 import { clearTokens } from '@/lib/github/oauth';
 
-// Clears the stored GitHub tokens. This revokes diffscope's local session only;
+// Clears the stored GitHub tokens. This revokes peekdiff's local session only;
 // it does not uninstall or de-authorize the GitHub App itself.
 export async function POST() {
   await clearTokens();

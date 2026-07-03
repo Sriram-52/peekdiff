@@ -1,5 +1,5 @@
 // Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
-// diffscope authors: when a load fails in a way consistent with a private repo,
+// peekdiff authors: when a load fails in a way consistent with a private repo,
 // offer a "Connect GitHub" action instead of a bare retry.
 import { IconCiWarningFill, IconRefresh } from '@pierre/icons';
 

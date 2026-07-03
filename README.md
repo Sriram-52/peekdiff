@@ -1,15 +1,15 @@
-# diffscope
+# peekdiff
 
 A fast, virtualized GitHub diff viewer with support for **private repositories**.
 
-Swap `github.com` for diffscope in any pull request, commit, or compare URL to
+Swap `github.com` for peekdiff in any pull request, commit, or compare URL to
 get an instant, virtualized diff. For private repos, connect a GitHub App and
-diffscope fetches the diff directly from the GitHub API in your browser, so your
-private source never touches the diffscope server.
+peekdiff fetches the diff directly from the GitHub API in your browser, so your
+private source never touches the peekdiff server.
 
 ## Credits and attribution
 
-diffscope is built on [**DiffsHub**](https://diffshub.com) by
+peekdiff is built on [**DiffsHub**](https://diffshub.com) by
 [Pierre Computer Company](https://github.com/pierrecomputer/pierre) and depends
 on their published rendering libraries. The genuinely hard part, the
 virtualized `CodeView` renderer, is their work, used here as the `@pierre/diffs`
@@ -21,11 +21,11 @@ and `@pierre/trees` npm packages.
 - See [`NOTICE`](./NOTICE) for the full attribution and [`LICENSE`](./LICENSE)
   for the Apache-2.0 terms.
 
-diffscope is an independent project and is not affiliated with or endorsed by
+peekdiff is an independent project and is not affiliated with or endorsed by
 Pierre Computer Company. "DiffsHub" and "Pierre" are their names/marks and are
-not used as diffscope's branding.
+not used as peekdiff's branding.
 
-## What diffscope adds over DiffsHub
+## What peekdiff adds over DiffsHub
 
 - **Private repositories** via a GitHub App.
 - A client-side authenticated fetch to the GitHub REST API (`Accept:
@@ -57,15 +57,15 @@ Public repos need no configuration. To view a diff, open
 Private-repo support uses a GitHub App with the **user access token** flow. A
 thin server exchanges the OAuth code for a token; the browser then fetches the
 diff **directly from `api.github.com`**, so private source never passes through
-the diffscope server.
+the peekdiff server.
 
 ### One-time GitHub App registration
 
 1. GitHub → Settings → Developer settings → **GitHub Apps** → **New GitHub App**.
 2. **Callback URL:** `http://localhost:3000/api/github/callback` for local dev
-   (add your production URL too, e.g. `https://diffscope.dev/api/github/callback`).
+   (add your production URL too, e.g. `https://peekdiff.dev/api/github/callback`).
 3. Enable **"Request user authorization (OAuth) during installation."**
-4. (Recommended) Enable **"Expire user authorization tokens"** so diffscope can
+4. (Recommended) Enable **"Expire user authorization tokens"** so peekdiff can
    refresh them; the refresh is handled automatically.
 5. **Permissions → Repository:** `Pull requests: Read-only` and
    `Contents: Read-only`. No webhook needed.
@@ -76,7 +76,7 @@ the diffscope server.
 
 Restart `pnpm dev`. Opening a private repo's diff now shows a **Connect GitHub**
 prompt; after connecting, the diff renders. Without the app configured,
-diffscope still works for all public repos.
+peekdiff still works for all public repos.
 
 ### Auth endpoints
 

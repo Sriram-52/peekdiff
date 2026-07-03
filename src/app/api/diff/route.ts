@@ -1,10 +1,10 @@
 // Derived from DiffsHub (pierrecomputer/pierre, apps/diffshub/app/api/diff/route.ts),
 // Apache-2.0, Copyright 2025 Pierre Computer Company. See /NOTICE.
 //
-// Changes by the diffscope authors:
+// Changes by the peekdiff authors:
 //   - Removed the DiffsHub-specific CDN cache blobs and the Tangled forge
-//     integration; diffscope proxies GitHub public diffs only.
-//   - Renamed the upstream User-Agent to "diffscope".
+//     integration; peekdiff proxies GitHub public diffs only.
+//   - Renamed the upstream User-Agent to "peekdiff".
 //   - Private repositories are NOT proxied here: those are fetched client-side
 //     straight from the GitHub API so private source never reaches this server.
 import { type NextRequest } from 'next/server';
@@ -170,7 +170,7 @@ async function createPatchStreamResponse(
   try {
     response = await fetch(patchURL, {
       cache: 'no-store',
-      headers: { 'User-Agent': 'diffscope' },
+      headers: { 'User-Agent': 'peekdiff' },
       signal: upstreamController.signal,
     });
   } catch {

@@ -1,5 +1,5 @@
 // Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
-// diffscope authors: feed the GitHub user access token into the patch loader so
+// peekdiff authors: feed the GitHub user access token into the patch loader so
 // private diffs load, and surface a "Connect GitHub" prompt when a load looks
 // blocked by repo privacy.
 'use client';

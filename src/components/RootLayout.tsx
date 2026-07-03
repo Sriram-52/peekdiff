@@ -1,5 +1,5 @@
 // Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
-// diffscope authors: replaced the commercial Berkeley Mono local webfont
+// peekdiff authors: replaced the commercial Berkeley Mono local webfont
 // (which we do not redistribute) with Geist Mono from next/font/google, and
 // wrapped the app in GitHubAuthProvider so the viewer can read the GitHub user
 // access token for private-repo diffs.

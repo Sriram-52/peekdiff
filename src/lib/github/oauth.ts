@@ -1,6 +1,6 @@
 // GitHub App user-to-server OAuth (server-only).
 //
-// diffscope uses a GitHub App to read diffs from private repositories. This
+// peekdiff uses a GitHub App to read diffs from private repositories. This
 // module is the ONLY place the app's client secret is used. It mints a
 // short-lived *user access token* that the browser then uses to fetch diffs
 // directly from api.github.com, so private source never passes through this
@@ -15,11 +15,11 @@ const GITHUB_ACCESS_TOKEN_URL = 'https://github.com/login/oauth/access_token';
 // httpOnly cookies. The access token is readable by same-origin JS only via
 // the /api/github/session route (it is NOT NEXT_PUBLIC and never rendered into
 // HTML); the refresh token is never exposed to the client.
-export const ACCESS_TOKEN_COOKIE = 'dsc_gh_at';
-export const REFRESH_TOKEN_COOKIE = 'dsc_gh_rt';
-export const ACCESS_EXPIRY_COOKIE = 'dsc_gh_exp';
-export const OAUTH_STATE_COOKIE = 'dsc_gh_state';
-export const RETURN_TO_COOKIE = 'dsc_gh_return';
+export const ACCESS_TOKEN_COOKIE = 'pd_gh_at';
+export const REFRESH_TOKEN_COOKIE = 'pd_gh_rt';
+export const ACCESS_EXPIRY_COOKIE = 'pd_gh_exp';
+export const OAUTH_STATE_COOKIE = 'pd_gh_state';
+export const RETURN_TO_COOKIE = 'pd_gh_return';
 
 interface GitHubOAuthConfig {
   clientId: string;

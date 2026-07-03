@@ -181,7 +181,7 @@
 }
 
 :root {
-  /* diffscope change: upstream used the commercial Berkeley Mono webfont,
+  /* peekdiff change: upstream used the commercial Berkeley Mono webfont,
      which we do not redistribute; fall back to Geist Mono. */
   --diffs-font-family: var(--font-geist-mono);
   --cv-gutter-vertical: 0px;

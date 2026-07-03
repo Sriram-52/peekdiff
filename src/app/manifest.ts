@@ -1,6 +1,6 @@
 // Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
-// diffscope authors: rebranded the name and removed the DiffsHub brand icon
-// assets (diffscope ships no icon set yet).
+// peekdiff authors: rebranded the name and removed the DiffsHub brand icon
+// assets (peekdiff ships no icon set yet).
 import type { MetadataRoute } from 'next';
 
 import { SITE_DESCRIPTION, SITE_NAME } from '@/lib/site';

@@ -1,5 +1,5 @@
 // Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
-// diffscope authors: removed the monorepo worktree title-prefix logic and the
+// peekdiff authors: removed the monorepo worktree title-prefix logic and the
 // DiffsHub brand image assets (icons/OG/Twitter), and rebranded origin/title.
 import type { Metadata, Viewport } from 'next';
 
@@ -21,7 +21,7 @@ export const viewport: Viewport = {
   ],
 };
 
-const PROD_ORIGIN = 'https://diffscope.dev';
+const PROD_ORIGIN = 'https://peekdiff.dev';
 // In dev, point `metadataBase` at localhost so OG previewers fetch
 // in-progress assets instead of whatever's deployed.
 const isDev = process.env.NODE_ENV !== 'production';
