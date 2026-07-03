@@ -1,3 +1,6 @@
+// Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
+// peekdiff authors: attribute new comments to the real GitHub user (passed via
+// authorLogin/authorAvatarUrl) instead of a random local persona.
 import {
   areSelectionsEqual,
   type CodeViewDiffItem,
@@ -18,7 +21,6 @@ import { DraftAnnotation } from './DraftAnnotation';
 import { ExampleAnnotation } from './ExampleAnnotation';
 import { ThemedCodeView } from './ThemedCodeView';
 import { useChromeThemeProps } from './useChromeThemeProps';
-import type { AvatarName } from '@/lib/annotation';
 import { buildAnnotationThemeStyle } from '@/lib/annotationThemeStyle';
 import { classifyCommentLineType } from '@/lib/classifyCommentLineType';
 import { cn } from '@/lib/cn';
@@ -63,6 +65,10 @@ interface ActiveDraftComment {
 
 interface DiffsHubViewerProps {
   className?: string;
+  // The real GitHub user to attribute new comments to; falls back to a local
+  // persona when absent (unauthenticated / demo).
+  authorLogin?: string;
+  authorAvatarUrl?: string;
   diffStyle: 'split' | 'unified';
   onCommentDeleted(comment: DiffsHubDeletedCommentEvent): void;
   onCommentSaved(comment: DiffsHubSavedCommentEvent): void;
@@ -80,6 +86,8 @@ interface DiffsHubViewerProps {
 
 export const DiffsHubViewer = memo(function DiffsHubViewer({
   className,
+  authorLogin,
+  authorAvatarUrl,
   diffStyle,
   onCommentDeleted,
   onCommentSaved,
@@ -247,7 +255,7 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
   );
 
   const handleSaveDraftComment = useStableCallback(
-    (itemId: string, key: string, message: string, author: AvatarName) => {
+    (itemId: string, key: string, message: string, author: string) => {
       const trimmedMessage = message.trim();
       const { current: viewer } = viewerRef;
       if (trimmedMessage.length === 0 || viewer == null) {
@@ -379,6 +387,8 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
           <DraftAnnotation
             annotation={annotation}
             itemId={item.id}
+            defaultAuthor={authorLogin}
+            defaultAvatarUrl={authorAvatarUrl}
             onCancel={handleRemoveComment}
             onSave={handleSaveDraftComment}
           />

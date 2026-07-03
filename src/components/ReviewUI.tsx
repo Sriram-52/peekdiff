@@ -1,7 +1,8 @@
 // Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
 // peekdiff authors: feed the GitHub user access token into the patch loader so
-// private diffs load, and surface a "Connect GitHub" prompt when a load looks
-// blocked by repo privacy.
+// private diffs load, surface a "Connect GitHub" prompt when a load looks
+// blocked by repo privacy, and post drafted comments as a batched GitHub review
+// (with replies) when connected on a PR.
 'use client';
 
 import { type DiffIndicators } from '@pierre/diffs';
@@ -12,6 +13,7 @@ import {
   type ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -29,6 +31,16 @@ import {
   themeController,
 } from '@/components/themeController';
 import { preloadAvatars } from '@/lib/annotation';
+import {
+  annotationSideToGithub,
+  createReview,
+  getPullHeadSha,
+  parsePullRef,
+  replyToThread,
+  type ReviewCommentInput,
+  type ReviewEvent,
+  ReviewsError,
+} from '@/lib/github/reviews';
 import { removeSavedCommentSidebarEntry } from '@/lib/removeSavedCommentSidebarEntry';
 import type { DarkThemeName, LightThemeName } from '@/lib/themeNames';
 import type {
@@ -58,7 +70,9 @@ export function ReviewUI({ domain, initialUrl, path }: ReviewUIProps) {
 function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
   useEffect(preloadAvatars, []);
 
-  const { token: githubToken, login } = useGitHubAuth();
+  const { token: githubToken, user: githubUser, login } = useGitHubAuth();
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   const isWorkerPoolReadyOrDisable = useIsWorkerPoolReadyOrDisabled();
   const [diffStyle, setDiffStyle] = useState<'split' | 'unified'>('split');
@@ -138,6 +152,7 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
     needsAuth,
     onLineLinkChange,
     onViewerReady,
+    reloadComments,
     retryLoad,
     setCommentSections,
     treeSource,
@@ -150,6 +165,86 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
     path,
     viewerRef,
   });
+
+  // Review posting is only possible when connected to GitHub on a PR path.
+  const canReview = githubToken != null && parsePullRef(path) != null;
+  // Pending comments = drafted locally this session, not yet a GitHub thread
+  // (GitHub-loaded entries carry a githubCommentId).
+  const pendingComments = useMemo(
+    () =>
+      commentSections.flatMap((section) =>
+        section.comments
+          .filter((comment) => comment.githubCommentId == null)
+          .map((comment) => ({
+            path: section.path,
+            line: comment.lineNumber,
+            side: annotationSideToGithub(comment.side),
+            body: comment.message,
+          }))
+      ) satisfies ReviewCommentInput[],
+    [commentSections]
+  );
+
+  const handleSubmitReview = useCallback(
+    async (event: ReviewEvent, summary: string) => {
+      const pullRef = parsePullRef(path);
+      if (githubToken == null || pullRef == null || reviewSubmitting) {
+        return;
+      }
+      setReviewSubmitting(true);
+      setReviewError(null);
+      try {
+        const commitId = await getPullHeadSha({ ...pullRef, token: githubToken });
+        await createReview({
+          ...pullRef,
+          token: githubToken,
+          commitId,
+          event,
+          body: summary || undefined,
+          comments: pendingComments,
+        });
+        await reloadComments();
+      } catch (error) {
+        setReviewError(
+          error instanceof ReviewsError
+            ? error.message
+            : 'Failed to submit the review.'
+        );
+      } finally {
+        setReviewSubmitting(false);
+      }
+    },
+    [githubToken, path, pendingComments, reloadComments, reviewSubmitting]
+  );
+
+  const handleReplyToThread = useCallback(
+    async (rootCommentId: number, body: string) => {
+      const pullRef = parsePullRef(path);
+      if (githubToken == null || pullRef == null) {
+        return;
+      }
+      setReviewSubmitting(true);
+      setReviewError(null);
+      try {
+        await replyToThread({
+          ...pullRef,
+          token: githubToken,
+          rootCommentId,
+          body,
+        });
+        await reloadComments();
+      } catch (error) {
+        setReviewError(
+          error instanceof ReviewsError
+            ? error.message
+            : 'Failed to post the reply.'
+        );
+      } finally {
+        setReviewSubmitting(false);
+      }
+    },
+    [githubToken, path, reloadComments]
+  );
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 767px)');
@@ -281,10 +376,18 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
             streaming={loadState === 'streaming'}
             themeCycle={themeCycle}
             onSelectItem={handleSelectTreeItem}
+            canReview={canReview}
+            pendingCommentCount={pendingComments.length}
+            reviewSubmitting={reviewSubmitting}
+            reviewError={reviewError}
+            onSubmitReview={handleSubmitReview}
+            onReplyToThread={handleReplyToThread}
           />
           <DiffsHubViewer
             key={viewerKey}
             className="[grid-area:viewer]"
+            authorLogin={githubUser?.login}
+            authorAvatarUrl={githubUser?.avatarUrl}
             diffStyle={diffStyle}
             overflow={overflow}
             showBackgrounds={showBackgrounds}

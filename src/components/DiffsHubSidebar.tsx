@@ -1,3 +1,6 @@
+// Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
+// peekdiff authors: render the review-submit bar and thread the GitHub reply
+// handler through to the comments list when connected on a PR.
 'use client';
 
 import {
@@ -26,9 +29,11 @@ import { CHROME_ICON_BUTTON_CLASS } from './chromeButtonStyles';
 import { DiffsHubCommentsList } from './DiffsHubCommentsList';
 import { DiffsHubDiffStats } from './DiffsHubDiffStats';
 import { DiffsHubFileTree } from './DiffsHubFileTree';
+import { ReviewSubmitBar } from './ReviewSubmitBar';
 import { useChromeThemeProps } from './useChromeThemeProps';
 import type { ThemeCycleControls } from './useThemeCycle';
 import { WorkerPoolStatus } from './WorkerPoolStatus';
+import type { ReviewEvent } from '@/lib/github/reviews';
 import { Button } from '@/components/Button';
 import { ButtonGroup, ButtonGroupItem } from '@/components/ButtonGroup';
 import {
@@ -69,6 +74,13 @@ interface DiffsHubSidebarProps {
   source: DiffsHubFileTreeSource;
   streaming: boolean;
   themeCycle: ThemeCycleControls;
+  // Review posting (present only when connected to GitHub on a PR path).
+  canReview?: boolean;
+  pendingCommentCount?: number;
+  reviewSubmitting?: boolean;
+  reviewError?: string | null;
+  onSubmitReview?(event: ReviewEvent, summary: string): void;
+  onReplyToThread?(rootCommentId: number, body: string): void;
 }
 
 export const DiffsHubSidebar = memo(function DiffsHubSidebar({
@@ -83,6 +95,12 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
   source,
   streaming,
   themeCycle,
+  canReview = false,
+  pendingCommentCount = 0,
+  reviewSubmitting = false,
+  reviewError = null,
+  onSubmitReview,
+  onReplyToThread,
 }: DiffsHubSidebarProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('files');
   let totalCommentCount = 0;
@@ -296,13 +314,25 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
             role="region"
             aria-label="Comments"
             hidden={activeTab !== 'comments'}
-            className="h-full min-h-0"
+            className="flex h-full min-h-0 flex-col"
           >
-            <DiffsHubCommentsList
-              commentSections={commentSections}
-              onSelectComment={onSelectComment}
-              onSelectItem={onSelectItem}
-            />
+            {canReview && onSubmitReview != null && (
+              <ReviewSubmitBar
+                pendingCount={pendingCommentCount}
+                submitting={reviewSubmitting}
+                error={reviewError}
+                onSubmit={onSubmitReview}
+              />
+            )}
+            <div className="min-h-0 flex-1">
+              <DiffsHubCommentsList
+                commentSections={commentSections}
+                onSelectComment={onSelectComment}
+                onSelectItem={onSelectItem}
+                onReply={canReview ? onReplyToThread : undefined}
+                replyPending={reviewSubmitting}
+              />
+            </div>
           </div>
         </div>
         <DiffsHubDiffStats

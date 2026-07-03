@@ -1,10 +1,10 @@
-// Client-side GitHub PR review comments (READ path).
+// Client-side GitHub PR review comments (read + write).
 //
-// Loads existing inline review comments for a pull request DIRECTLY from
+// Loads AND posts inline review comments for a pull request DIRECTLY from/to
 // api.github.com with the user's token (CORS is open, Authorization allowed),
-// so private source/discussion never passes through the peekdiff server. This
-// module only reads; posting/replying is a later increment that needs the
-// GitHub App's `Pull requests: Write` permission.
+// so private source/discussion never passes through the peekdiff server.
+// Posting requires the GitHub App's `Pull requests: Write` permission on the
+// installation.
 
 import type { AnnotationSide } from '@pierre/diffs';
 
@@ -43,6 +43,194 @@ export function githubSideToAnnotation(
   // GitHub anchors a comment on the LEFT (base/deleted) or RIGHT (head/added)
   // side of the diff; the viewer models the same as deletions/additions.
   return side === 'LEFT' ? 'deletions' : 'additions';
+}
+
+export function annotationSideToGithub(side: AnnotationSide): 'LEFT' | 'RIGHT' {
+  return side === 'deletions' ? 'LEFT' : 'RIGHT';
+}
+
+function githubHeaders(token: string): HeadersInit {
+  return {
+    Accept: 'application/vnd.github+json',
+    Authorization: `Bearer ${token}`,
+    'X-GitHub-Api-Version': GITHUB_API_VERSION,
+  };
+}
+
+// Turns a failed GitHub write response into a readable, actionable message.
+async function readError(response: Response, fallback: string): Promise<string> {
+  let detail = '';
+  try {
+    const body = (await response.json()) as {
+      message?: string;
+      errors?: { message?: string; field?: string }[];
+    };
+    detail =
+      body.errors?.map((e) => e.message ?? e.field).filter(Boolean).join('; ') ||
+      body.message ||
+      '';
+  } catch {
+    // non-JSON body; ignore
+  }
+  if (response.status === 403) {
+    return 'GitHub denied write access. Reconnect GitHub so the token picks up the Pull requests: Write permission (Connect GitHub again).';
+  }
+  if (response.status === 401) {
+    return 'GitHub token expired or invalid. Reconnect GitHub.';
+  }
+  if (response.status === 422) {
+    return `GitHub rejected the review${detail ? `: ${detail}` : ' (a comment may target a line not present in the diff).'}`;
+  }
+  return `${fallback}${detail ? `: ${detail}` : ` (${response.status}).`}`;
+}
+
+// The head commit SHA is required as `commit_id` when creating review comments.
+export async function getPullHeadSha({
+  owner,
+  repo,
+  pull,
+  token,
+  signal,
+}: PullRef & { token: string; signal?: AbortSignal }): Promise<string> {
+  const response = await fetch(
+    `${GITHUB_API_ORIGIN}/repos/${owner}/${repo}/pulls/${pull}`,
+    { headers: githubHeaders(token), cache: 'no-store', signal }
+  );
+  if (!response.ok) {
+    throw new ReviewsError(
+      await readError(response, 'Failed to load the pull request'),
+      response.status
+    );
+  }
+  const data = (await response.json()) as { head?: { sha?: string } };
+  const sha = data.head?.sha;
+  if (!sha) {
+    throw new ReviewsError('Pull request has no head commit SHA.', 500);
+  }
+  return sha;
+}
+
+export interface AuthedUser {
+  login: string;
+  avatarUrl: string;
+}
+
+// The authenticated GitHub user, shown as the author of new (pending) comments.
+export async function getAuthedUser({
+  token,
+  signal,
+}: {
+  token: string;
+  signal?: AbortSignal;
+}): Promise<AuthedUser> {
+  const response = await fetch(`${GITHUB_API_ORIGIN}/user`, {
+    headers: githubHeaders(token),
+    cache: 'no-store',
+    signal,
+  });
+  if (!response.ok) {
+    throw new ReviewsError(
+      await readError(response, 'Failed to load the GitHub user'),
+      response.status
+    );
+  }
+  const data = (await response.json()) as {
+    login: string;
+    avatar_url: string;
+  };
+  return { login: data.login, avatarUrl: data.avatar_url };
+}
+
+export type ReviewEvent = 'COMMENT' | 'APPROVE' | 'REQUEST_CHANGES';
+
+export interface ReviewCommentInput {
+  path: string;
+  line: number;
+  side: 'LEFT' | 'RIGHT';
+  body: string;
+}
+
+// Creates a single batched review: all pending inline comments plus an optional
+// summary body, submitted together with an APPROVE / REQUEST_CHANGES / COMMENT
+// event. This is the GitHub-native "submit review" action.
+export async function createReview({
+  owner,
+  repo,
+  pull,
+  token,
+  commitId,
+  event,
+  body,
+  comments,
+  signal,
+}: PullRef & {
+  token: string;
+  commitId: string;
+  event: ReviewEvent;
+  body?: string;
+  comments: ReviewCommentInput[];
+  signal?: AbortSignal;
+}): Promise<void> {
+  const response = await fetch(
+    `${GITHUB_API_ORIGIN}/repos/${owner}/${repo}/pulls/${pull}/reviews`,
+    {
+      method: 'POST',
+      headers: { ...githubHeaders(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        commit_id: commitId,
+        event,
+        ...(body ? { body } : {}),
+        comments: comments.map((c) => ({
+          path: c.path,
+          line: c.line,
+          side: c.side,
+          body: c.body,
+        })),
+      }),
+      cache: 'no-store',
+      signal,
+    }
+  );
+  if (!response.ok) {
+    throw new ReviewsError(
+      await readError(response, 'Failed to submit the review'),
+      response.status
+    );
+  }
+}
+
+// Posts a reply to an existing review thread (identified by its root comment
+// id). Replies are sent immediately, not batched into a review.
+export async function replyToThread({
+  owner,
+  repo,
+  pull,
+  token,
+  rootCommentId,
+  body,
+  signal,
+}: PullRef & {
+  token: string;
+  rootCommentId: number;
+  body: string;
+  signal?: AbortSignal;
+}): Promise<void> {
+  const response = await fetch(
+    `${GITHUB_API_ORIGIN}/repos/${owner}/${repo}/pulls/${pull}/comments/${rootCommentId}/replies`,
+    {
+      method: 'POST',
+      headers: { ...githubHeaders(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body }),
+      cache: 'no-store',
+      signal,
+    }
+  );
+  if (!response.ok) {
+    throw new ReviewsError(
+      await readError(response, 'Failed to post the reply'),
+      response.status
+    );
+  }
 }
 
 interface RawReviewComment {

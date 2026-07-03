@@ -10,6 +10,8 @@ import {
   useState,
 } from 'react';
 
+import { type AuthedUser, getAuthedUser } from '@/lib/github/reviews';
+
 interface SessionResponse {
   authenticated: boolean;
   configured: boolean;
@@ -25,6 +27,9 @@ interface GitHubAuthValue {
   // The current user access token, or null when signed out. Held in memory
   // only (never localStorage) since it grants private-repo read.
   token: string | null;
+  // The authenticated GitHub user (login + avatar), or null when signed out /
+  // still loading. Used as the author of new review comments.
+  user: AuthedUser | null;
   // Redirects into the OAuth flow, returning to `returnTo` afterwards.
   login(returnTo?: string): void;
   logout(): Promise<void>;
@@ -38,6 +43,7 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
   const [configured, setConfigured] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<AuthedUser | null>(null);
 
   const refresh = useCallback(async (): Promise<string | null> => {
     try {
@@ -47,10 +53,20 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
       setConfigured(data.configured);
       setAuthenticated(data.authenticated);
       setToken(nextToken);
+      if (nextToken != null) {
+        // Fire-and-forget: the login/avatar is only used to attribute new
+        // comments, so a failure here must not block auth.
+        getAuthedUser({ token: nextToken })
+          .then(setUser)
+          .catch(() => setUser(null));
+      } else {
+        setUser(null);
+      }
       return nextToken;
     } catch {
       setAuthenticated(false);
       setToken(null);
+      setUser(null);
       return null;
     }
   }, []);
@@ -78,12 +94,13 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setAuthenticated(false);
       setToken(null);
+      setUser(null);
     }
   }, []);
 
   const value = useMemo<GitHubAuthValue>(
-    () => ({ authenticated, configured, token, login, logout, refresh }),
-    [authenticated, configured, token, login, logout, refresh]
+    () => ({ authenticated, configured, token, user, login, logout, refresh }),
+    [authenticated, configured, token, user, login, logout, refresh]
   );
 
   return (

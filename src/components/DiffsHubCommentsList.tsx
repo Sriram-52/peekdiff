@@ -1,13 +1,15 @@
 // Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
-// peekdiff authors: show the real GitHub avatar and a reply count for comments
-// loaded from a GitHub PR review thread.
+// peekdiff authors: show the real GitHub avatar + reply count for comments
+// loaded from a GitHub PR review thread, expand replies, tag not-yet-posted
+// (pending) comments, and offer an inline reply box on real threads.
 'use client';
 
 import type { AnnotationSide } from '@pierre/diffs';
 import { IconConvoFill, IconPlus } from '@pierre/icons';
-import { memo, type MouseEvent } from 'react';
+import { memo, type MouseEvent, useState } from 'react';
 
 import { CommentAuthorAvatar } from './CommentAuthorAvatar';
+import { Button } from '@/components/Button';
 import { cn } from '@/lib/cn';
 import type {
   CommentLineType,
@@ -19,6 +21,10 @@ interface DiffsHubCommentsListProps {
   commentSections: readonly DiffsHubSavedCommentItem[];
   onSelectComment?(comment: DiffsHubSavedCommentEntry): void;
   onSelectItem?(itemId: string): void;
+  // Posts a reply to an existing GitHub review thread (root comment id). When
+  // absent (unauthenticated / demo) no reply affordance is shown.
+  onReply?(rootCommentId: number, body: string): void;
+  replyPending?: boolean;
 }
 
 function getCommentLineLabel(
@@ -84,6 +90,8 @@ export const DiffsHubCommentsList = memo(function DiffsHubCommentsList({
   commentSections,
   onSelectComment,
   onSelectItem,
+  onReply,
+  replyPending = false,
 }: DiffsHubCommentsListProps) {
   if (commentSections.length === 0) {
     return (
@@ -127,65 +135,165 @@ export const DiffsHubCommentsList = memo(function DiffsHubCommentsList({
               {section.path}
             </div>
           )}
-          <div className="rounded-lg border border-[var(--diffshub-card-border,rgb(0_0_0_/_0.1))] dark:border-[var(--diffshub-card-border,rgb(255_255_255_/_0.15))]">
-            {section.comments.map((comment) => (
-              <button
-                key={comment.key}
-                type="button"
-                // Card surface, hover, and border come from the themed
-                // chrome (set on the sidebar wrapper) so cards stay
-                // on-palette for mixed-light/dark themes like slack-ochin
-                // (light-typed but uses a dark navy sidebar). The
-                // hardcoded fallbacks cover the brief window before the
-                // Shiki theme resolves on first render.
-                // No `transition-colors` here: the bg / border / text
-                // colors are driven by CSS variables that flip the entire
-                // chrome on every theme swap, so a smooth color transition
-                // on each card visibly trails the rest of the UI (header,
-                // file tree, diff body) which snap instantly. Hover bg is
-                // snappy enough without an interpolated transition.
-                className="focus-visible:ring-ring flex w-full cursor-pointer items-start gap-2 border-b border-[var(--diffshub-card-border,rgb(0_0_0_/_0.1))] bg-[var(--diffshub-card-bg,var(--color-card))] p-3 text-left text-sm outline-none first:rounded-t-lg last:rounded-b-lg last:border-b-0 hover:bg-[var(--diffshub-card-hover-bg,var(--color-muted))] focus-visible:ring-2 dark:border-[var(--diffshub-card-border,rgb(255_255_255_/_0.15))]"
-                onClick={(event) =>
-                  handleRowClick(event, () => onSelectComment?.(comment))
-                }
-              >
-                <CommentAuthorAvatar
-                  seed={comment.author}
-                  avatarUrl={comment.authorAvatarUrl}
-                  className="size-5"
-                />
-                <div className="flex flex-col items-start gap-0.5 select-text">
-                  <div className="text-muted-foreground flex gap-1">
-                    {comment.author} commented on{' '}
-                    <span
-                      className={cn(
-                        getCommentLineClassName(comment.side, comment.lineType),
-                        'font-medium'
-                      )}
-                    >
-                      {getCommentLineLabel(
-                        comment.side,
-                        comment.lineNumber,
-                        comment.lineType
-                      )}
-                    </span>
-                  </div>
-                  <p className="text-foreground w-full break-words whitespace-pre-wrap">
-                    {comment.message}
-                  </p>
+          <div className="overflow-hidden rounded-lg border border-[var(--diffshub-card-border,rgb(0_0_0_/_0.1))] dark:border-[var(--diffshub-card-border,rgb(255_255_255_/_0.15))]">
+            {section.comments.map((comment) => {
+              const isPending = comment.githubCommentId == null;
+              return (
+                <div
+                  key={comment.key}
+                  className="border-b border-[var(--diffshub-card-border,rgb(0_0_0_/_0.1))] bg-[var(--diffshub-card-bg,var(--color-card))] last:border-b-0 dark:border-[var(--diffshub-card-border,rgb(255_255_255_/_0.15))]"
+                >
+                  <button
+                    type="button"
+                    // Colors come from the themed chrome (set on the sidebar
+                    // wrapper) so cards stay on-palette for mixed light/dark
+                    // themes; hardcoded fallbacks cover first render. No
+                    // transition-colors: the CSS-variable chrome flips instantly
+                    // on theme swap and a per-card transition would visibly trail.
+                    className="focus-visible:ring-ring flex w-full cursor-pointer items-start gap-2 p-3 text-left text-sm outline-none hover:bg-[var(--diffshub-card-hover-bg,var(--color-muted))] focus-visible:ring-2"
+                    onClick={(event) =>
+                      handleRowClick(event, () => onSelectComment?.(comment))
+                    }
+                  >
+                    <CommentAuthorAvatar
+                      seed={comment.author}
+                      avatarUrl={comment.authorAvatarUrl}
+                      className="size-5"
+                    />
+                    <div className="flex flex-col items-start gap-0.5 select-text">
+                      <div className="text-muted-foreground flex flex-wrap items-center gap-1">
+                        {comment.author} commented on{' '}
+                        <span
+                          className={cn(
+                            getCommentLineClassName(
+                              comment.side,
+                              comment.lineType
+                            ),
+                            'font-medium'
+                          )}
+                        >
+                          {getCommentLineLabel(
+                            comment.side,
+                            comment.lineNumber,
+                            comment.lineType
+                          )}
+                        </span>
+                        {isPending && (
+                          <span className="rounded-full bg-[color-mix(in_srgb,currentColor_18%,transparent)] px-1.5 text-[10px] leading-4 font-medium uppercase">
+                            Pending
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-foreground w-full break-words whitespace-pre-wrap">
+                        {comment.message}
+                      </p>
+                    </div>
+                  </button>
                   {comment.githubReplies != null &&
-                  comment.githubReplies.length > 0 ? (
-                    <span className="text-muted-foreground mt-0.5 text-xs">
-                      {comment.githubReplies.length}{' '}
-                      {comment.githubReplies.length === 1 ? 'reply' : 'replies'}
-                    </span>
-                  ) : null}
+                    comment.githubReplies.length > 0 && (
+                      <div className="border-t border-[var(--diffshub-card-border,rgb(0_0_0_/_0.1))] dark:border-[var(--diffshub-card-border,rgb(255_255_255_/_0.15))]">
+                        {comment.githubReplies.map((reply, index) => (
+                          <div
+                            key={index}
+                            className="flex items-start gap-2 px-3 py-2 pl-6 text-sm"
+                          >
+                            <CommentAuthorAvatar
+                              seed={reply.login}
+                              avatarUrl={reply.avatarUrl}
+                              className="size-4"
+                            />
+                            <div className="flex flex-col items-start gap-0.5 select-text">
+                              <span className="text-muted-foreground">
+                                {reply.login}
+                              </span>
+                              <p className="text-foreground w-full break-words whitespace-pre-wrap">
+                                {reply.body}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  {onReply != null && comment.githubCommentId != null && (
+                    <ReplyBox
+                      rootCommentId={comment.githubCommentId}
+                      pending={replyPending}
+                      onReply={onReply}
+                    />
+                  )}
                 </div>
-              </button>
-            ))}
+              );
+            })}
           </div>
         </section>
       ))}
     </div>
   );
 });
+
+// Inline "Reply" affordance for a real GitHub review thread: a toggle that
+// reveals a textarea and posts a reply to the thread's root comment.
+function ReplyBox({
+  rootCommentId,
+  pending,
+  onReply,
+}: {
+  rootCommentId: number;
+  pending: boolean;
+  onReply(rootCommentId: number, body: string): void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const trimmed = text.trim();
+
+  if (!open) {
+    return (
+      <div className="px-3 pb-2">
+        <button
+          type="button"
+          className="text-muted-foreground hover:text-foreground text-xs font-medium"
+          onClick={() => setOpen(true)}
+        >
+          Reply
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 px-3 pb-3">
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.currentTarget.value)}
+        placeholder="Reply…"
+        rows={2}
+        autoFocus
+        className="field-sizing-content w-full resize-none rounded-md border border-[var(--color-border-opaque)] bg-transparent px-2 py-1.5 text-[13px] placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      />
+      <div className="flex justify-end gap-2">
+        <Button
+          type="button"
+          variant="muted"
+          onClick={() => {
+            setOpen(false);
+            setText('');
+          }}
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          disabled={pending || trimmed.length === 0}
+          onClick={() => {
+            onReply(rootCommentId, trimmed);
+            setOpen(false);
+            setText('');
+          }}
+          className="bg-blue-500 hover:bg-blue-600"
+        >
+          Reply
+        </Button>
+      </div>
+    </div>
+  );
+}

@@ -93,6 +93,9 @@ interface UsePatchLoaderResult {
   needsAuth: boolean;
   onLineLinkChange(selection: CodeViewLineSelection | null): void;
   onViewerReady(): void;
+  // Re-fetches GitHub review threads for the current PR and replaces the
+  // sidebar comments with them (used after submitting a review/reply).
+  reloadComments(): Promise<void>;
   retryLoad(): void;
   setCommentSections: Dispatch<SetStateAction<DiffsHubSavedCommentItem[]>>;
   treeSource: DiffsHubFileTreeSource | null;
@@ -619,6 +622,29 @@ export function usePatchLoader({
     setLoadAttempt((attempt) => attempt + 1);
   }, []);
 
+  // Re-fetch review threads for the current PR against the already-parsed diff
+  // (no diff reload), used after a review/reply is posted so the new comments
+  // appear as real GitHub threads. Reads the latest commentFileByItemId state.
+  const reloadComments = useCallback(async () => {
+    if (authToken == null || authToken === '') {
+      return;
+    }
+    const pullRef = parsePullRef(path);
+    if (pullRef == null || commentFileByItemId == null) {
+      return;
+    }
+    try {
+      const threads = await listReviewThreads({ ...pullRef, token: authToken });
+      const { sections } = reviewThreadsToCommentSections(
+        threads,
+        commentFileByItemId
+      );
+      setCommentSections(sections);
+    } catch (error) {
+      console.warn('peekdiff: failed to reload review comments', error);
+    }
+  }, [authToken, path, commentFileByItemId]);
+
   return {
     applyCollapseModeToLoaded,
     commentFileByItemId,
@@ -630,6 +656,7 @@ export function usePatchLoader({
     needsAuth,
     onLineLinkChange: handleLineLinkChange,
     onViewerReady: tryApplyLineHashTarget,
+    reloadComments,
     retryLoad,
     setCommentSections,
     treeSource,

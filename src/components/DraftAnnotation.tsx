@@ -1,37 +1,38 @@
+// Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
+// peekdiff authors: attribute the draft to the real GitHub user when connected
+// (defaultAuthor/defaultAvatarUrl), falling back to a local persona otherwise.
 import type { DiffLineAnnotation } from '@pierre/diffs';
 import { IconArrowRight } from '@pierre/icons';
 import { useEffect, useRef, useState } from 'react';
 
 import { CommentAuthorAvatar } from './CommentAuthorAvatar';
 import { Button } from '@/components/Button';
-import {
-  annotationCardBase,
-  type AvatarName,
-  getRandomPersona,
-} from '@/lib/annotation';
+import { annotationCardBase, getRandomPersona } from '@/lib/annotation';
 import { cn } from '@/lib/cn';
 import type { DraftCommentMetadata } from '@/lib/types';
 
 interface DraftAnnotationProps {
   annotation: DiffLineAnnotation<DraftCommentMetadata>;
   itemId: string;
+  // The real GitHub login/avatar to attribute the comment to; when absent a
+  // random local persona is used (unauthenticated / demo).
+  defaultAuthor?: string;
+  defaultAvatarUrl?: string;
   onCancel(itemId: string, key: string): void;
-  onSave(
-    itemId: string,
-    key: string,
-    message: string,
-    author: AvatarName
-  ): void;
+  onSave(itemId: string, key: string, message: string, author: string): void;
 }
 
 export function DraftAnnotation({
   annotation,
   itemId,
+  defaultAuthor,
+  defaultAvatarUrl,
   onCancel,
   onSave,
 }: DraftAnnotationProps) {
   const [message, setMessage] = useState(annotation.metadata.message);
   const [persona] = useState(getRandomPersona);
+  const author = defaultAuthor ?? persona.name;
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const trimmedMessage = message.trim();
 
@@ -39,7 +40,7 @@ export function DraftAnnotation({
     if (trimmedMessage.length === 0) {
       return;
     }
-    onSave(itemId, annotation.metadata.key, trimmedMessage, persona.name);
+    onSave(itemId, annotation.metadata.key, trimmedMessage, author);
   }
 
   function tryCancel() {
@@ -69,7 +70,7 @@ export function DraftAnnotation({
       }}
     >
       <div className="flex w-full gap-2.5">
-        <CommentAuthorAvatar seed={persona.name} />
+        <CommentAuthorAvatar seed={author} avatarUrl={defaultAvatarUrl} />
         <textarea
           ref={textareaRef}
           value={message}
