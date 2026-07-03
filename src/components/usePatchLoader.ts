@@ -1,7 +1,8 @@
 // Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
 // peekdiff authors: added optional `authToken` so private diffs are fetched
-// directly from api.github.com in the browser (never through this server), and
-// a `needsAuth` signal when an unauthenticated load looks blocked by privacy.
+// directly from api.github.com in the browser (never through this server), a
+// `needsAuth` signal when an unauthenticated load looks blocked by privacy, and
+// loading of existing GitHub PR review comments into the sidebar (read path).
 'use client';
 
 import {
@@ -27,6 +28,11 @@ import {
   fetchAuthedPatch,
   githubApiDiffUrl,
 } from '@/lib/github/authedPatch';
+import {
+  listReviewThreads,
+  parsePullRef,
+  reviewThreadsToCommentSections,
+} from '@/lib/github/reviews';
 import {
   appendFileDiffToDiffsHubData,
   buildDiffsHubData,
@@ -259,6 +265,46 @@ export function usePatchLoader({
     async function loadPatch() {
       try {
         const cacheKeyPrefix = encodeURIComponent(patchRequestKey);
+
+        // Fire-and-forget load of existing GitHub PR review comments into the
+        // sidebar once the diff is parsed. Requires a token and a PR path;
+        // never blocks or breaks diff rendering (failures are logged only).
+        async function loadReviewCommentsInto(
+          fileByItemId: DiffsHubCommentFileByItemId
+        ) {
+          if (authToken == null || authToken === '') {
+            return;
+          }
+          const pullRef = parsePullRef(path);
+          if (pullRef == null) {
+            return;
+          }
+          try {
+            const threads = await listReviewThreads({
+              ...pullRef,
+              token: authToken,
+              signal: controller.signal,
+            });
+            if (!isCurrentRequest()) {
+              return;
+            }
+            const { sections, skippedNotInDiff } =
+              reviewThreadsToCommentSections(threads, fileByItemId);
+            if (skippedNotInDiff > 0) {
+              console.warn(
+                `peekdiff: ${skippedNotInDiff} review thread(s) skipped (file not in this diff).`
+              );
+            }
+            if (isCurrentRequest()) {
+              setCommentSections(sections);
+            }
+          } catch (error) {
+            if (isCurrentRequest()) {
+              console.warn('peekdiff: failed to load review comments', error);
+            }
+          }
+        }
+
         async function commitFullPatch(patchContent: string) {
           if (!isCurrentRequest()) {
             return;
@@ -281,6 +327,7 @@ export function usePatchLoader({
           prepareItemsForViewer(loadedData.items);
           setInitialItems(loadedData.items);
           setLoadState('ready');
+          void loadReviewCommentsInto(loadedData.itemIdToFile);
           await yieldToBrowser();
           if (isCurrentRequest()) {
             tryApplyLineHashTarget();
@@ -530,9 +577,11 @@ export function usePatchLoader({
           return;
         }
 
-        setCommentFileByItemId(new Map(accumulator.itemIdToFile));
+        const streamedFileByItemId = new Map(accumulator.itemIdToFile);
+        setCommentFileByItemId(streamedFileByItemId);
         setDiffStats({ ...accumulator.diffStats });
         setLoadState('ready');
+        void loadReviewCommentsInto(streamedFileByItemId);
       } catch (error) {
         if (!isCurrentRequest()) {
           return;

@@ -1,3 +1,7 @@
+// Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
+// peekdiff authors: added optional GitHub-origin fields to
+// DiffsHubSavedCommentEntry (+ GitHubReplyPreview) so real PR review threads
+// loaded from api.github.com can be displayed alongside local draft comments.
 import type { AnnotationSide, SelectedLineRange } from '@pierre/diffs';
 import type { FileTreeGitStatusPatch, GitStatusEntry } from '@pierre/trees';
 
@@ -56,6 +60,13 @@ export interface DiffsHubDeletedCommentEvent {
   key: string;
 }
 
+// A preview of a reply within a GitHub review thread (read-only display).
+export interface GitHubReplyPreview {
+  login: string;
+  avatarUrl: string;
+  body: string;
+}
+
 export interface DiffsHubSavedCommentEntry {
   author: string;
   itemId: string;
@@ -65,6 +76,12 @@ export interface DiffsHubSavedCommentEntry {
   message: string;
   range: SelectedLineRange;
   side: AnnotationSide;
+  // The following are present only for entries loaded from a GitHub PR review
+  // (not for locally-drafted comments), and drive real avatars + thread replies
+  // in the sidebar.
+  githubCommentId?: number;
+  authorAvatarUrl?: string;
+  githubReplies?: GitHubReplyPreview[];
 }
 
 export interface DiffsHubSavedCommentItem {

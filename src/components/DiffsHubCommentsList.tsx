@@ -1,3 +1,6 @@
+// Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
+// peekdiff authors: show the real GitHub avatar and a reply count for comments
+// loaded from a GitHub PR review thread.
 'use client';
 
 import type { AnnotationSide } from '@pierre/diffs';
@@ -146,7 +149,11 @@ export const DiffsHubCommentsList = memo(function DiffsHubCommentsList({
                   handleRowClick(event, () => onSelectComment?.(comment))
                 }
               >
-                <CommentAuthorAvatar seed={comment.author} className="size-5" />
+                <CommentAuthorAvatar
+                  seed={comment.author}
+                  avatarUrl={comment.authorAvatarUrl}
+                  className="size-5"
+                />
                 <div className="flex flex-col items-start gap-0.5 select-text">
                   <div className="text-muted-foreground flex gap-1">
                     {comment.author} commented on{' '}
@@ -166,6 +173,13 @@ export const DiffsHubCommentsList = memo(function DiffsHubCommentsList({
                   <p className="text-foreground w-full break-words whitespace-pre-wrap">
                     {comment.message}
                   </p>
+                  {comment.githubReplies != null &&
+                  comment.githubReplies.length > 0 ? (
+                    <span className="text-muted-foreground mt-0.5 text-xs">
+                      {comment.githubReplies.length}{' '}
+                      {comment.githubReplies.length === 1 ? 'reply' : 'replies'}
+                    </span>
+                  ) : null}
                 </div>
               </button>
             ))}
