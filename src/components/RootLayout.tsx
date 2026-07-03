@@ -1,10 +1,12 @@
 // Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
 // diffscope authors: replaced the commercial Berkeley Mono local webfont
-// (which we do not redistribute) with Geist Mono from next/font/google, exposed
-// under the same --font-berkeley-mono variable name for a drop-in swap.
+// (which we do not redistribute) with Geist Mono from next/font/google, and
+// wrapped the app in GitHubAuthProvider so the viewer can read the GitHub user
+// access token for private-repo diffs.
 import { Geist, Geist_Mono } from 'next/font/google';
 import type { ReactNode } from 'react';
 
+import { GitHubAuthProvider } from '@/components/github-auth';
 import { PreloadHighlighter } from '@/components/PreloadHighlighter';
 import { ScrollbarGutterVariables } from '@/components/ScrollbarGutterVariables';
 import { ThemeProvider } from '@/components/ThemeProvider';
@@ -83,22 +85,24 @@ export function RootLayout({
       </head>
       <body className="diffshub">
         <ScrollbarGutterVariables />
-        <WorkerPoolContext>
-          <ThemeProvider attribute="class">
-            {children}
-            <Toaster />
-            <div
-              id="dark-mode-portal-container"
-              className="dark"
-              data-theme="dark"
-            ></div>
-            <div
-              id="light-mode-portal-container"
-              className="light"
-              data-theme="light"
-            ></div>
-          </ThemeProvider>
-        </WorkerPoolContext>
+        <GitHubAuthProvider>
+          <WorkerPoolContext>
+            <ThemeProvider attribute="class">
+              {children}
+              <Toaster />
+              <div
+                id="dark-mode-portal-container"
+                className="dark"
+                data-theme="dark"
+              ></div>
+              <div
+                id="light-mode-portal-container"
+                className="light"
+                data-theme="light"
+              ></div>
+            </ThemeProvider>
+          </WorkerPoolContext>
+        </GitHubAuthProvider>
         <PreloadHighlighter />
       </body>
     </html>

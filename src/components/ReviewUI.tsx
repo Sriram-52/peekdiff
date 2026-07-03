@@ -1,3 +1,7 @@
+// Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
+// diffscope authors: feed the GitHub user access token into the patch loader so
+// private diffs load, and surface a "Connect GitHub" prompt when a load looks
+// blocked by repo privacy.
 'use client';
 
 import { type DiffIndicators } from '@pierre/diffs';
@@ -16,6 +20,7 @@ import { DiffsHubHeader } from './DiffsHubHeader';
 import { DiffsHubSidebar } from './DiffsHubSidebar';
 import { DiffsHubStatusPanel } from './DiffsHubStatusPanel';
 import { DiffsHubViewer } from './DiffsHubViewer';
+import { useGitHubAuth } from './github-auth';
 import { ThemeSourceProvider } from './ThemeSourceProvider';
 import { usePatchLoader } from './usePatchLoader';
 import { useThemeCycle } from './useThemeCycle';
@@ -52,6 +57,8 @@ export function ReviewUI({ domain, initialUrl, path }: ReviewUIProps) {
 
 function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
   useEffect(preloadAvatars, []);
+
+  const { token: githubToken, login } = useGitHubAuth();
 
   const isWorkerPoolReadyOrDisable = useIsWorkerPoolReadyOrDisabled();
   const [diffStyle, setDiffStyle] = useState<'split' | 'unified'>('split');
@@ -128,6 +135,7 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
     errorMessage,
     initialItems,
     loadState,
+    needsAuth,
     onLineLinkChange,
     onViewerReady,
     retryLoad,
@@ -135,6 +143,7 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
     treeSource,
     viewerKey,
   } = usePatchLoader({
+    authToken: githubToken,
     collapseMode,
     domain,
     onLoadStart: handlePatchLoadStart,
@@ -294,6 +303,8 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
       ) : (
         <DiffsHubStatusPanel
           errorMessage={errorMessage}
+          needsAuth={needsAuth}
+          onConnect={() => login()}
           onRetry={retryLoad}
           state={loadState}
         />

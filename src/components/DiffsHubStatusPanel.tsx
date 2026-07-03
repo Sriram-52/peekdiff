@@ -1,3 +1,6 @@
+// Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
+// diffscope authors: when a load fails in a way consistent with a private repo,
+// offer a "Connect GitHub" action instead of a bare retry.
 import { IconCiWarningFill, IconRefresh } from '@pierre/icons';
 
 import { useChromeThemeProps } from './useChromeThemeProps';
@@ -8,12 +11,18 @@ import type { ViewerLoadState } from '@/lib/types';
 
 interface DiffsHubStatusPanelProps {
   errorMessage: string | null;
+  // When true the failure looks like a private repo the visitor hasn't
+  // connected GitHub for; the panel offers `onConnect` instead of a retry.
+  needsAuth?: boolean;
+  onConnect?(): void;
   onRetry(): void;
   state: ViewerLoadState;
 }
 
 export function DiffsHubStatusPanel({
   errorMessage,
+  needsAuth = false,
+  onConnect,
   onRetry,
   state,
 }: DiffsHubStatusPanelProps) {
@@ -26,7 +35,10 @@ export function DiffsHubStatusPanel({
   const themeChromeStyle =
     Object.keys(chromeStyle).length > 0 ? chromeStyle : undefined;
   const isError = state === 'error';
-  const title = isError
+  const showConnect = isError && needsAuth && onConnect != null;
+  const title = isError && needsAuth
+    ? 'This repo may be private'
+    : isError
     ? 'Couldn’t load diff'
     : state === 'parsing'
       ? 'Preparing diff'
@@ -34,7 +46,9 @@ export function DiffsHubStatusPanel({
         ? 'Fetching diff'
         : 'Streaming diff';
 
-  const message = isError
+  const message = isError && needsAuth
+    ? 'Connect your GitHub account to view diffs from private repositories you have access to.'
+    : isError
     ? (errorMessage ?? 'Failed to fetch the diff, please try again.')
     : state === 'parsing'
       ? 'Parsing the patch and building the file tree…'
@@ -68,11 +82,15 @@ export function DiffsHubStatusPanel({
         <p className="text-muted-foreground mt-1 text-sm text-pretty">
           {message}
         </p>
-        {isError && (
+        {showConnect ? (
+          <Button type="button" className="mt-4" onClick={onConnect}>
+            Connect GitHub
+          </Button>
+        ) : isError ? (
           <Button type="button" className="mt-4" onClick={onRetry}>
             Try again
           </Button>
-        )}
+        ) : null}
       </section>
     </div>
   );

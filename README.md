@@ -48,6 +48,43 @@ pnpm build
 pnpm lint
 ```
 
+Public repos need no configuration. To view a diff, open
+`http://localhost:3000/<owner>/<repo>/pull/<n>` (also `/commit/<sha>` and
+`/compare/<base>...<head>`).
+
+## Private repositories (GitHub App)
+
+Private-repo support uses a GitHub App with the **user access token** flow. A
+thin server exchanges the OAuth code for a token; the browser then fetches the
+diff **directly from `api.github.com`**, so private source never passes through
+the diffscope server.
+
+### One-time GitHub App registration
+
+1. GitHub → Settings → Developer settings → **GitHub Apps** → **New GitHub App**.
+2. **Callback URL:** `http://localhost:3000/api/github/callback` for local dev
+   (add your production URL too, e.g. `https://diffscope.dev/api/github/callback`).
+3. Enable **"Request user authorization (OAuth) during installation."**
+4. (Recommended) Enable **"Expire user authorization tokens"** so diffscope can
+   refresh them; the refresh is handled automatically.
+5. **Permissions → Repository:** `Pull requests: Read-only` and
+   `Contents: Read-only`. No webhook needed.
+6. Create the app, then generate a **client secret**.
+7. Copy `.env.example` → `.env.local` and set `GITHUB_APP_CLIENT_ID` and
+   `GITHUB_APP_CLIENT_SECRET`.
+8. Install the app on the account/org whose private repos you want to view.
+
+Restart `pnpm dev`. Opening a private repo's diff now shows a **Connect GitHub**
+prompt; after connecting, the diff renders. Without the app configured,
+diffscope still works for all public repos.
+
+### Auth endpoints
+
+- `GET /api/github/login` → redirect into the OAuth consent screen
+- `GET /api/github/callback` → code exchange, sets httpOnly token cookies
+- `GET /api/github/session` → `{ authenticated, token? }` for the client
+- `POST /api/github/logout` → clears the local session
+
 ## License
 
 Apache-2.0. See [`LICENSE`](./LICENSE) and [`NOTICE`](./NOTICE).

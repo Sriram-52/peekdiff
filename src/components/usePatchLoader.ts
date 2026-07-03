@@ -1,3 +1,7 @@
+// Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
+// diffscope authors: added optional `authToken` so private diffs are fetched
+// directly from api.github.com in the browser (never through this server), and
+// a `needsAuth` signal when an unauthenticated load looks blocked by privacy.
 'use client';
 
 import {
@@ -18,6 +22,11 @@ import {
 } from 'react';
 
 import { CODE_VIEW_BATCH_COUNT, getInitialBatchSize } from '@/lib/constants';
+import {
+  AuthedPatchError,
+  fetchAuthedPatch,
+  githubApiDiffUrl,
+} from '@/lib/github/authedPatch';
 import {
   appendFileDiffToDiffsHubData,
   buildDiffsHubData,
@@ -54,6 +63,10 @@ const GENERIC_PATCH_LOAD_ERROR_MESSAGE =
   'We couldn’t load that diff. Check the URL and try again.';
 
 interface UsePatchLoaderOptions {
+  // When set, private (and public) diffs are fetched straight from
+  // api.github.com with this GitHub user access token instead of the public
+  // `/api/diff` proxy, so private source never reaches the diffscope server.
+  authToken?: string | null;
   collapseMode: 'expanded' | 'collapsed';
   domain?: string;
   onLoadStart(): void;
@@ -69,6 +82,9 @@ interface UsePatchLoaderResult {
   errorMessage: string | null;
   initialItems: CodeViewItem<CommentMetadata>[];
   loadState: ViewerLoadState;
+  // True when an unauthenticated load failed in a way consistent with the repo
+  // being private, so the UI can prompt the visitor to connect GitHub.
+  needsAuth: boolean;
   onLineLinkChange(selection: CodeViewLineSelection | null): void;
   onViewerReady(): void;
   retryLoad(): void;
@@ -78,6 +94,7 @@ interface UsePatchLoaderResult {
 }
 
 export function usePatchLoader({
+  authToken,
   collapseMode,
   domain,
   onLoadStart,
@@ -101,6 +118,7 @@ export function usePatchLoader({
   >([]);
   const [loadState, setLoadState] = useState<ViewerLoadState>('fetching');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [needsAuth, setNeedsAuth] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [viewerKey, setViewerKey] = useState(0);
   const requestIdRef = useRef(0);
@@ -235,6 +253,7 @@ export function usePatchLoader({
     setCommentSections([]);
     onLoadStart();
     setErrorMessage(null);
+    setNeedsAuth(false);
     setLoadState('fetching');
 
     async function loadPatch() {
@@ -268,22 +287,65 @@ export function usePatchLoader({
           }
         }
 
-        console.time('--     request time');
-        const response = await fetch(`/api/diff?${patchSearchParams}`, {
-          cache: 'no-store',
-          signal: controller.signal,
-        });
-        console.timeEnd('--     request time');
+        // Resolves the diff transport. With a GitHub token we fetch straight
+        // from api.github.com (works for public *and* private repos and keeps
+        // private source off this server); otherwise we use the public proxy.
+        // On an unauthenticated proxy failure that looks like a private repo,
+        // flag needsAuth so the UI can offer to connect GitHub.
+        async function resolvePatchResponse(): Promise<Response> {
+          if (
+            authToken != null &&
+            authToken !== '' &&
+            githubApiDiffUrl(path) != null
+          ) {
+            try {
+              return await fetchAuthedPatch({
+                path,
+                token: authToken,
+                signal: controller.signal,
+              });
+            } catch (error) {
+              // A too-large diff (406) can still succeed through the public
+              // proxy for public repos, so fall through in that one case;
+              // re-throw everything else.
+              if (
+                !(error instanceof AuthedPatchError) ||
+                error.status !== 406
+              ) {
+                throw error;
+              }
+            }
+          }
 
-        // This only catches route setup errors. GitHub fetch failures are
-        // delivered while consuming the stream so the UI can enter the
-        // streaming state as soon as the local transport opens.
-        if (!response.ok) {
-          const detail = (await response.text()).trim();
-          throw new Error(
-            detail.length > 0 ? detail : `Request failed (${response.status}).`
-          );
+          const proxyResponse = await fetch(`/api/diff?${patchSearchParams}`, {
+            cache: 'no-store',
+            signal: controller.signal,
+          });
+          // This only catches route setup errors. GitHub fetch failures are
+          // delivered while consuming the stream so the UI can enter the
+          // streaming state as soon as the local transport opens.
+          if (!proxyResponse.ok) {
+            if (
+              (authToken == null || authToken === '') &&
+              (proxyResponse.status === 403 ||
+                proxyResponse.status === 404 ||
+                proxyResponse.status === 415)
+            ) {
+              setNeedsAuth(true);
+            }
+            const detail = (await proxyResponse.text()).trim();
+            throw new Error(
+              detail.length > 0
+                ? detail
+                : `Request failed (${proxyResponse.status}).`
+            );
+          }
+          return proxyResponse;
         }
+
+        console.time('--     request time');
+        const response = await resolvePatchResponse();
+        console.timeEnd('--     request time');
 
         if (response.body == null) {
           console.time('--     reading patch');
@@ -487,6 +549,7 @@ export function usePatchLoader({
       controller.abort();
     };
   }, [
+    authToken,
     domain,
     loadAttempt,
     onLoadStart,
@@ -515,6 +578,7 @@ export function usePatchLoader({
     errorMessage,
     initialItems,
     loadState,
+    needsAuth,
     onLineLinkChange: handleLineLinkChange,
     onViewerReady: tryApplyLineHashTarget,
     retryLoad,
