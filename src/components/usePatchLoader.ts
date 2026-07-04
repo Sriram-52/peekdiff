@@ -97,7 +97,7 @@ interface UsePatchLoaderResult {
   onViewerReady(): void;
   // Re-fetches GitHub review threads for the current PR and replaces the
   // sidebar comments with them (used after submitting a review/reply).
-  reloadComments(): Promise<void>;
+  reloadComments(options?: { clearDrafts?: boolean }): Promise<void>;
   retryLoad(): void;
   setCommentSections: Dispatch<SetStateAction<PeekdiffSavedCommentItem[]>>;
   treeSource: PeekdiffFileTreeSource | null;
@@ -216,7 +216,7 @@ export function usePatchLoader({
   // GitHub set (keys prefixed "gh-") so a reload after posting doesn't stack
   // duplicates, while leaving locally-drafted annotations untouched.
   const applyLoadedThreadAnnotations = useStableCallback(
-    (sections: PeekdiffSavedCommentItem[]) => {
+    (sections: PeekdiffSavedCommentItem[], clearDrafts = false) => {
       const byItem = new Map<string, DiffLineAnnotation<CommentMetadata>[]>();
       for (const section of sections) {
         for (const entry of section.comments) {
@@ -244,9 +244,15 @@ export function usePatchLoader({
         existing: readonly DiffLineAnnotation<CommentMetadata>[] | undefined,
         itemId: string
       ): DiffLineAnnotation<CommentMetadata>[] => {
-        const kept = (existing ?? []).filter(
-          (annotation) => !annotation.metadata.key.startsWith('gh-')
-        );
+        // A normal reload keeps locally-drafted annotations and only replaces
+        // the previous GitHub set. After a submit, clearDrafts also drops the
+        // drafts: they were just posted and now arrive as gh- threads, so
+        // keeping them would render the draft and its posted copy side by side.
+        const kept = clearDrafts
+          ? []
+          : (existing ?? []).filter(
+              (annotation) => !annotation.metadata.key.startsWith('gh-')
+            );
         return [...kept, ...(byItem.get(itemId) ?? [])];
       };
 
@@ -722,26 +728,32 @@ export function usePatchLoader({
   // Re-fetch review threads for the current PR against the already-parsed diff
   // (no diff reload), used after a review/reply is posted so the new comments
   // appear as real GitHub threads. Reads the latest commentFileByItemId state.
-  const reloadComments = useCallback(async () => {
-    if (authToken == null || authToken === '') {
-      return;
-    }
-    const pullRef = parsePullRef(path);
-    if (pullRef == null || commentFileByItemId == null) {
-      return;
-    }
-    try {
-      const threads = await listReviewThreads({ ...pullRef, token: authToken });
-      const { sections } = reviewThreadsToCommentSections(
-        threads,
-        commentFileByItemId
-      );
-      setCommentSections(sections);
-      applyLoadedThreadAnnotations(sections);
-    } catch (error) {
-      console.warn('peekdiff: failed to reload review comments', error);
-    }
-  }, [authToken, path, commentFileByItemId, applyLoadedThreadAnnotations]);
+  const reloadComments = useCallback(
+    async (options?: { clearDrafts?: boolean }) => {
+      if (authToken == null || authToken === '') {
+        return;
+      }
+      const pullRef = parsePullRef(path);
+      if (pullRef == null || commentFileByItemId == null) {
+        return;
+      }
+      try {
+        const threads = await listReviewThreads({
+          ...pullRef,
+          token: authToken,
+        });
+        const { sections } = reviewThreadsToCommentSections(
+          threads,
+          commentFileByItemId
+        );
+        setCommentSections(sections);
+        applyLoadedThreadAnnotations(sections, options?.clearDrafts ?? false);
+      } catch (error) {
+        console.warn('peekdiff: failed to reload review comments', error);
+      }
+    },
+    [authToken, path, commentFileByItemId, applyLoadedThreadAnnotations]
+  );
 
   return {
     applyCollapseModeToLoaded,

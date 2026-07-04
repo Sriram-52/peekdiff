@@ -480,7 +480,9 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
           body: summary || undefined,
           comments: pendingComments,
         });
-        await reloadComments();
+        // clearDrafts: the just-posted drafts now come back as GitHub threads,
+        // so drop the local draft annotations to avoid rendering both.
+        await reloadComments({ clearDrafts: true });
         // Confirm in place and offer a jump to the PR on GitHub. Reviews
         // usually end with closing the tab, so we don't force a redirect.
         const prUrl = `https://github.com/${pullRef.owner}/${pullRef.repo}/pull/${pullRef.pull}`;
