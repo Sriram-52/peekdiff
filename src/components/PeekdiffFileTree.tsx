@@ -117,12 +117,40 @@ export const PeekdiffFileTree = memo(function PeekdiffFileTree({
     onSelectionChange,
     itemHeight: CODE_VIEW_FILE_TREE_ITEM_HEIGHT,
     initialVisibleRowCount,
-    // Show a checkmark on files the reviewer has marked "viewed". Reads the
-    // live ref since this renderer is captured once by useFileTree.
-    renderRowDecoration: ({ row }) =>
-      row.kind === 'file' && viewedPathsRef.current?.has(row.path)
-        ? { text: '✓', title: 'Viewed' }
-        : null,
+    // Show a checkmark on files the reviewer marked "viewed", and on a folder
+    // when ALL its descendant files are viewed. Reads live refs since this
+    // renderer is captured once by useFileTree.
+    renderRowDecoration: ({ row }) => {
+      const viewed = viewedPathsRef.current;
+      if (viewed == null || viewed.size === 0) {
+        return null;
+      }
+      if (row.kind === 'file') {
+        return viewed.has(row.path) ? { text: '✓', title: 'Viewed' } : null;
+      }
+      // Directory: its real path is the terminal flattened segment when the row
+      // is a flattened single-child chain (whose row.path carries the
+      // FLATTENED_PREFIX "f::"), otherwise row.path itself.
+      const segments = row.flattenedSegments;
+      let dirPath =
+        row.isFlattened && segments && segments.length > 0
+          ? segments[segments.length - 1].path
+          : row.path;
+      if (dirPath.startsWith('f::')) {
+        dirPath = dirPath.slice(3);
+      }
+      const prefix = dirPath.endsWith('/') ? dirPath : `${dirPath}/`;
+      let hasDescendant = false;
+      for (const filePath of sourceRef.current.pathToItemId.keys()) {
+        if (filePath === dirPath || filePath.startsWith(prefix)) {
+          hasDescendant = true;
+          if (!viewed.has(filePath)) {
+            return null; // a file under this folder isn't viewed yet
+          }
+        }
+      }
+      return hasDescendant ? { text: '✓', title: 'All files viewed' } : null;
+    },
   });
 
   // useFileTree captured renderRowDecoration once, so when the viewed set
