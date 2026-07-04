@@ -13,7 +13,8 @@ import { type CSSProperties, memo, useEffect, useRef, useState } from 'react';
 // peekdiff authors: inlined the FileTreePublicId type alias (upstream imported
 // it from a monorepo-relative path that does not exist outside the monorepo;
 // the published @pierre/trees does not re-export it from its entry, and it is
-// simply `type FileTreePublicId = string`).
+// simply `type FileTreePublicId = string`); and added a "viewed" checkmark
+// row decoration driven by the reviewer's per-file viewed set.
 type FileTreePublicId = string;
 import { ThemedFileTree } from './ThemedFileTree';
 import {
@@ -48,17 +49,22 @@ interface DiffsHubFileTreeProps {
   onModelReady(model: FileTreeModel | null): void;
   onSelectItem(itemId: string): void;
   source: DiffsHubFileTreeSource;
+  // Tree paths marked "viewed"; rendered as a checkmark decoration. Read via a
+  // ref because useFileTree captures its options once.
+  viewedPaths?: ReadonlySet<string>;
 }
 
 export const DiffsHubFileTree = memo(function DiffsHubFileTree({
   onModelReady,
   onSelectItem,
   source,
+  viewedPaths,
 }: DiffsHubFileTreeProps) {
   const sourceRef = useRef(source);
   const previousSourceRef = useRef(source);
   const [initialVisibleRowCount] = useState(getInitialBatchSize);
   sourceRef.current = source;
+  const viewedPathsRef = useRef<ReadonlySet<string> | undefined>(viewedPaths);
   // `source.paths` aliases the streaming accumulator's live array, so it keeps
   // growing on later publishes. The FileTree model consumes its path list
   // exactly once via useFileTree's useState initializer; capture a bounded
@@ -88,7 +94,36 @@ export const DiffsHubFileTree = memo(function DiffsHubFileTree({
     onSelectionChange,
     itemHeight: CODE_VIEW_FILE_TREE_ITEM_HEIGHT,
     initialVisibleRowCount,
+    // Show a checkmark on files the reviewer has marked "viewed". Reads the
+    // live ref since this renderer is captured once by useFileTree.
+    renderRowDecoration: ({ row }) =>
+      row.kind === 'file' && viewedPathsRef.current?.has(row.path)
+        ? { text: '✓', title: 'Viewed' }
+        : null,
   });
+
+  // useFileTree captured renderRowDecoration once, so when the viewed set
+  // changes we refresh the ref it reads and nudge the model to repaint its
+  // rows (there is no public decoration-invalidate API; re-applying git status
+  // re-renders rows).
+  const didMountRef = useRef(false);
+  useEffect(() => {
+    viewedPathsRef.current = viewedPaths;
+    // Skip the initial mount: the tree's first build already runs the
+    // decoration renderer, and nudging git status here would clobber the
+    // source-sync effect's initial reset.
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
+    // Re-run the decoration renderer by rebuilding the visible rows.
+    // setGitStatus does not re-invoke decorations (they're only recomputed on a
+    // structural rebuild), so we resetPaths with the current path list — the
+    // same call the source-sync effect uses on load, which is what makes the
+    // checkmark appear there.
+    const src = sourceRef.current;
+    model.resetPaths(src.paths.slice(0, src.pathCount));
+  }, [model, viewedPaths]);
 
   useEffect(() => {
     const previousSource = previousSourceRef.current;

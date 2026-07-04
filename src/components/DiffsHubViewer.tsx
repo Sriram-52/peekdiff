@@ -1,6 +1,8 @@
 // Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
 // peekdiff authors: attribute new comments to the real GitHub user (passed via
-// authorLogin/authorAvatarUrl) instead of a random local persona.
+// authorLogin/authorAvatarUrl) instead of a random local persona, and add a
+// per-file "Viewed" checkbox in each file header that collapses the file and
+// drives the sidebar tree's viewed state.
 import {
   areSelectionsEqual,
   type CodeViewDiffItem,
@@ -15,7 +17,14 @@ import {
 } from '@pierre/diffs';
 import { type CodeViewHandle, useStableCallback } from '@pierre/diffs/react';
 import { IconChevronSm } from '@pierre/icons';
-import { memo, type RefObject, useMemo, useRef, useState } from 'react';
+import {
+  memo,
+  type RefObject,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { DraftAnnotation } from './DraftAnnotation';
 import { ExampleAnnotation } from './ExampleAnnotation';
@@ -80,6 +89,10 @@ interface DiffsHubViewerProps {
   themeType: ThemeTypes;
   viewerRef: RefObject<CodeViewHandle<CommentMetadata> | null>;
   initialItems: CodeViewItem<CommentMetadata>[];
+  // itemIds the reviewer has marked "viewed"; drives the header checkbox and
+  // collapses those files.
+  viewedItemIds: ReadonlySet<string>;
+  onToggleViewed(itemId: string): void;
   onLineLinkChange(selection: CodeViewLineSelection | null): void;
   onViewerReady(): void;
 }
@@ -99,6 +112,8 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
   themeType,
   viewerRef,
   initialItems,
+  viewedItemIds,
+  onToggleViewed,
   onLineLinkChange,
   onViewerReady,
 }: DiffsHubViewerProps) {
@@ -413,6 +428,55 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
     }
   );
 
+  // Reconcile viewed files with the viewer's collapse state: viewed files
+  // collapse; a file that transitions viewed -> unviewed re-expands. We only
+  // expand on that transition (tracked via prevViewedRef) so we never fight a
+  // file the user collapsed manually without marking it viewed. Re-runs when
+  // the viewed set OR the loaded items change (viewedItemIds gets a fresh
+  // identity as the tree source updates), so restored-on-load viewed files
+  // collapse once their items exist.
+  const prevViewedRef = useRef<ReadonlySet<string>>(new Set());
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (viewer == null) {
+      return;
+    }
+    for (const itemId of viewedItemIds) {
+      const item = viewer.getItem(itemId);
+      if (item?.type === 'diff' && item.collapsed !== true) {
+        item.collapsed = true;
+        item.version = getNextItemVersion(item);
+        viewer.updateItem(item);
+      }
+    }
+    for (const itemId of prevViewedRef.current) {
+      if (viewedItemIds.has(itemId)) {
+        continue;
+      }
+      const item = viewer.getItem(itemId);
+      if (item?.type === 'diff' && item.collapsed === true) {
+        item.collapsed = false;
+        item.version = getNextItemVersion(item);
+        viewer.updateItem(item);
+      }
+    }
+    prevViewedRef.current = viewedItemIds;
+  }, [viewedItemIds, viewerRef]);
+
+  const renderHeaderMetadata = useStableCallback(
+    (item: CodeViewItem<CommentMetadata>) => {
+      if (item.type !== 'diff') {
+        return null;
+      }
+      return (
+        <ViewedToggle
+          viewed={viewedItemIds.has(item.id)}
+          onToggle={() => onToggleViewed(item.id)}
+        />
+      );
+    }
+  );
+
   const renderHeaderPrefix = useStableCallback(
     (item: CodeViewItem<CommentMetadata>) => {
       if (item.type !== 'diff') {
@@ -489,6 +553,7 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
       onSelectedLinesChange={handleSetSelection}
       renderAnnotation={renderCommentAnnotation}
       renderHeaderPrefix={renderHeaderPrefix}
+      renderHeaderMetadata={renderHeaderMetadata}
     />
   );
 });
@@ -528,5 +593,29 @@ function CollapseDiffButton({
         )}
       />
     </button>
+  );
+}
+
+interface ViewedToggleProps {
+  viewed: boolean;
+  onToggle(): void;
+}
+
+// GitHub-style per-file "Viewed" checkbox rendered in each file header.
+function ViewedToggle({ viewed, onToggle }: ViewedToggleProps) {
+  return (
+    <label
+      className="text-muted-foreground hover:text-foreground flex cursor-pointer select-none items-center gap-1.5 text-xs font-medium"
+      // The header row has its own click behavior; keep the checkbox isolated.
+      onClick={(event) => event.stopPropagation()}
+    >
+      <input
+        type="checkbox"
+        checked={viewed}
+        onChange={onToggle}
+        className="size-3.5 cursor-pointer accent-current"
+      />
+      Viewed
+    </label>
   );
 }

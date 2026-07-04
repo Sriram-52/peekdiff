@@ -43,6 +43,7 @@ import {
   ReviewsError,
 } from '@/lib/github/reviews';
 import { removeSavedCommentSidebarEntry } from '@/lib/removeSavedCommentSidebarEntry';
+import { loadViewedFiles, saveViewedFiles } from '@/lib/viewedFiles';
 import type { DarkThemeName, LightThemeName } from '@/lib/themeNames';
 import type {
   CommentMetadata,
@@ -166,6 +167,65 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
     path,
     viewerRef,
   });
+
+  // Per-file "Viewed" tracking (GitHub-style), keyed by tree path and
+  // persisted per PR. Marking a file viewed collapses its diff; the sidebar
+  // tree shows a checkmark. Loaded lazily on mount so SSR/first paint match.
+  const [viewedPaths, setViewedPaths] = useState<ReadonlySet<string>>(
+    () => new Set()
+  );
+  useEffect(() => {
+    // Load persisted viewed state after mount (not in the initializer) so the
+    // server-rendered markup and first client render match before hydration.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setViewedPaths(loadViewedFiles(path));
+  }, [path]);
+  useEffect(() => {
+    saveViewedFiles(path, viewedPaths);
+  }, [path, viewedPaths]);
+
+  // path <-> itemId maps derived from the tree source (pathToItemId: path->id).
+  const itemIdToPath = useMemo(() => {
+    const map = new Map<string, string>();
+    if (treeSource != null) {
+      for (const [p, id] of treeSource.pathToItemId) {
+        map.set(id, p);
+      }
+    }
+    return map;
+  }, [treeSource]);
+  // Viewed itemIds (for the viewer header + collapse), resolved from paths.
+  const viewedItemIds = useMemo(() => {
+    const ids = new Set<string>();
+    if (treeSource != null) {
+      for (const p of viewedPaths) {
+        const id = treeSource.pathToItemId.get(p);
+        if (id != null) {
+          ids.add(id);
+        }
+      }
+    }
+    return ids;
+  }, [treeSource, viewedPaths]);
+
+  const handleToggleViewed = useCallback(
+    (itemId: string) => {
+      const filePath = itemIdToPath.get(itemId);
+      if (filePath == null) {
+        return;
+      }
+      setViewedPaths((prev) => {
+        const next = new Set(prev);
+        if (next.has(filePath)) {
+          next.delete(filePath);
+        } else {
+          next.add(filePath);
+        }
+        return next;
+      });
+    },
+    [itemIdToPath]
+  );
 
   // Review posting is only possible when connected to GitHub on a PR path.
   const canReview = githubToken != null && parsePullRef(path) != null;
@@ -384,6 +444,7 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
             streaming={loadState === 'streaming'}
             themeCycle={themeCycle}
             onSelectItem={handleSelectTreeItem}
+            viewedPaths={viewedPaths}
             canReview={canReview}
             reviewSubmitting={reviewSubmitting}
             onReplyToThread={handleReplyToThread}
@@ -402,6 +463,8 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
             themeType={colorMode}
             viewerRef={viewerRef}
             initialItems={initialItems}
+            viewedItemIds={viewedItemIds}
+            onToggleViewed={handleToggleViewed}
             onCommentDeleted={handleCommentDeleted}
             onCommentSaved={handleCommentSaved}
             onLineLinkChange={onLineLinkChange}

@@ -78,6 +78,8 @@ interface DiffsHubSidebarProps {
   canReview?: boolean;
   reviewSubmitting?: boolean;
   onReplyToThread?(rootCommentId: number, body: string): void;
+  // Tree paths the reviewer has marked "viewed" (shown as a checkmark).
+  viewedPaths?: ReadonlySet<string>;
 }
 
 export const DiffsHubSidebar = memo(function DiffsHubSidebar({
@@ -95,6 +97,7 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
   canReview = false,
   reviewSubmitting = false,
   onReplyToThread,
+  viewedPaths,
 }: DiffsHubSidebarProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('files');
   let totalCommentCount = 0;
@@ -302,6 +305,7 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
               source={filteredSource}
               onModelReady={handleModelReady}
               onSelectItem={onSelectItem}
+              viewedPaths={viewedPaths}
             />
           </div>
           <div
