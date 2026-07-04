@@ -1,11 +1,11 @@
 import { redirect } from 'next/navigation';
 
 import { ReviewUI } from '@/components/ReviewUI';
-import { resolveDiffshubViewerRoute } from '@/lib/resolveDiffshubViewerRoute';
+import { resolvePeekdiffViewerRoute } from '@/lib/resolvePeekdiffViewerRoute';
 
 // Viewer route that mirrors the upstream path. GitHub is the public default,
 // while hidden alternate domains can opt in through the `domain` query param.
-export async function DiffsHubViewByPathPage({
+export async function PeekdiffViewByPathPage({
   params,
   searchParams,
 }: {
@@ -15,7 +15,7 @@ export async function DiffsHubViewByPathPage({
   const { path } = await params;
   const { domain } = await searchParams;
   const requestedDomain = Array.isArray(domain) ? domain[0] : domain;
-  const route = resolveDiffshubViewerRoute(path, requestedDomain);
+  const route = resolvePeekdiffViewerRoute(path, requestedDomain);
 
   if (route.kind === 'redirect') {
     redirect(route.target);

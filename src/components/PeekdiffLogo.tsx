@@ -4,7 +4,7 @@
 // red "-", i.e. the diff idea as an app icon — and relabeled it peekdiff.
 import { cn } from '@/lib/cn';
 
-export function PeekDiffLogo({ className }: { className?: string }) {
+export function PeekdiffLogo({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"

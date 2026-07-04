@@ -14,13 +14,13 @@ import { Button } from '@/components/Button';
 import { cn } from '@/lib/cn';
 import type {
   CommentLineType,
-  DiffsHubSavedCommentEntry,
-  DiffsHubSavedCommentItem,
+  PeekdiffSavedCommentEntry,
+  PeekdiffSavedCommentItem,
 } from '@/lib/types';
 
-interface DiffsHubCommentsListProps {
-  commentSections: readonly DiffsHubSavedCommentItem[];
-  onSelectComment?(comment: DiffsHubSavedCommentEntry): void;
+interface PeekdiffCommentsListProps {
+  commentSections: readonly PeekdiffSavedCommentItem[];
+  onSelectComment?(comment: PeekdiffSavedCommentEntry): void;
   onSelectItem?(itemId: string): void;
   // Posts a reply to an existing GitHub review thread (root comment id). When
   // absent (unauthenticated / demo) no reply affordance is shown.
@@ -47,7 +47,7 @@ function getCommentLineClassName(
   if (lineType === 'context') {
     return 'text-muted-foreground';
   }
-  // The themed chrome sets --diffshub-comment-add-fg / -del-fg with a shade
+  // The themed chrome sets --peekdiff-comment-add-fg / -del-fg with a shade
   // chosen from the active Shiki surface's luminance, so addition/deletion
   // labels stay legible even on mixed-palette themes (e.g. slack-ochin's
   // "light" classification with a dark navy sidebar, where the global
@@ -55,8 +55,8 @@ function getCommentLineClassName(
   // on a dark card). The Tailwind shades stay as fallbacks for the
   // first-render window before the chrome style applies.
   return side === 'additions'
-    ? 'text-[var(--diffshub-comment-add-fg,#047857)] dark:text-[var(--diffshub-comment-add-fg,#34d399)]'
-    : 'text-[var(--diffshub-comment-del-fg,#be123c)] dark:text-[var(--diffshub-comment-del-fg,#fb7185)]';
+    ? 'text-[var(--peekdiff-comment-add-fg,#047857)] dark:text-[var(--peekdiff-comment-add-fg,#34d399)]'
+    : 'text-[var(--peekdiff-comment-del-fg,#be123c)] dark:text-[var(--peekdiff-comment-del-fg,#fb7185)]';
 }
 
 // Wraps a click handler so users can drag-select text inside the row without
@@ -87,13 +87,13 @@ function handleRowClick(
   run();
 }
 
-export const DiffsHubCommentsList = memo(function DiffsHubCommentsList({
+export const PeekdiffCommentsList = memo(function PeekdiffCommentsList({
   commentSections,
   onSelectComment,
   onSelectItem,
   onReply,
   replyPending = false,
-}: DiffsHubCommentsListProps) {
+}: PeekdiffCommentsListProps) {
   if (commentSections.length === 0) {
     return (
       <div className="text-muted-foreground flex h-full min-h-0 flex-col items-center justify-center gap-2 px-7 text-center text-sm">
@@ -136,13 +136,13 @@ export const DiffsHubCommentsList = memo(function DiffsHubCommentsList({
               {section.path}
             </div>
           )}
-          <div className="overflow-hidden rounded-lg border border-[var(--diffshub-card-border,rgb(0_0_0_/_0.1))] dark:border-[var(--diffshub-card-border,rgb(255_255_255_/_0.15))]">
+          <div className="overflow-hidden rounded-lg border border-[var(--peekdiff-card-border,rgb(0_0_0_/_0.1))] dark:border-[var(--peekdiff-card-border,rgb(255_255_255_/_0.15))]">
             {section.comments.map((comment) => {
               const isPending = comment.githubCommentId == null;
               return (
                 <div
                   key={comment.key}
-                  className="border-b border-[var(--diffshub-card-border,rgb(0_0_0_/_0.1))] bg-[var(--diffshub-card-bg,var(--color-card))] last:border-b-0 dark:border-[var(--diffshub-card-border,rgb(255_255_255_/_0.15))]"
+                  className="border-b border-[var(--peekdiff-card-border,rgb(0_0_0_/_0.1))] bg-[var(--peekdiff-card-bg,var(--color-card))] last:border-b-0 dark:border-[var(--peekdiff-card-border,rgb(255_255_255_/_0.15))]"
                 >
                   <button
                     type="button"
@@ -151,7 +151,7 @@ export const DiffsHubCommentsList = memo(function DiffsHubCommentsList({
                     // themes; hardcoded fallbacks cover first render. No
                     // transition-colors: the CSS-variable chrome flips instantly
                     // on theme swap and a per-card transition would visibly trail.
-                    className="focus-visible:ring-ring flex w-full cursor-pointer items-start gap-2 p-3 text-left text-sm outline-none hover:bg-[var(--diffshub-card-hover-bg,var(--color-muted))] focus-visible:ring-2"
+                    className="focus-visible:ring-ring flex w-full cursor-pointer items-start gap-2 p-3 text-left text-sm outline-none hover:bg-[var(--peekdiff-card-hover-bg,var(--color-muted))] focus-visible:ring-2"
                     onClick={(event) =>
                       handleRowClick(event, () => onSelectComment?.(comment))
                     }
@@ -193,7 +193,7 @@ export const DiffsHubCommentsList = memo(function DiffsHubCommentsList({
                   </button>
                   {comment.githubReplies != null &&
                     comment.githubReplies.length > 0 && (
-                      <div className="border-t border-[var(--diffshub-card-border,rgb(0_0_0_/_0.1))] dark:border-[var(--diffshub-card-border,rgb(255_255_255_/_0.15))]">
+                      <div className="border-t border-[var(--peekdiff-card-border,rgb(0_0_0_/_0.1))] dark:border-[var(--peekdiff-card-border,rgb(255_255_255_/_0.15))]">
                         {comment.githubReplies.map((reply, index) => (
                           <div
                             key={index}

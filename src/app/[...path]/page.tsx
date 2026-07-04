@@ -1,1 +1,1 @@
-export { DiffsHubViewByPathPage as default } from './DiffsHubViewByPathPage';
+export { PeekdiffViewByPathPage as default } from './PeekdiffViewByPathPage';

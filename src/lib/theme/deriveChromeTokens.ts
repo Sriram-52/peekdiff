@@ -11,7 +11,7 @@
 import type { ThemeLike } from '@pierre/theming';
 import { colorUtils, normalizeThemeColors } from '@pierre/theming/color';
 
-// The opinionated app-chrome token set diffshubChromeMapping maps onto its CSS
+// The opinionated app-chrome token set peekdiffChromeMapping maps onto its CSS
 // variables. Moved out of @pierre/theming (which now stays neutral); the shape
 // is unchanged from the token set the package used to ship.
 export interface ChromeTokens {

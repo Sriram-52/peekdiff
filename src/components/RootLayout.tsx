@@ -83,7 +83,7 @@ export function RootLayout({
           dangerouslySetInnerHTML={{ __html: themeBootstrapScript }}
         />
       </head>
-      <body className="diffshub">
+      <body className="peekdiff">
         <ScrollbarGutterVariables />
         <GitHubAuthProvider>
           <WorkerPoolContext>

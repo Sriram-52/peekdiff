@@ -1,12 +1,12 @@
 import type {
-  DiffsHubDeletedCommentEvent,
-  DiffsHubSavedCommentItem,
+  PeekdiffDeletedCommentEvent,
+  PeekdiffSavedCommentItem,
 } from './types';
 
 export function removeSavedCommentSidebarEntry(
-  sections: readonly DiffsHubSavedCommentItem[],
-  entry: DiffsHubDeletedCommentEvent
-): DiffsHubSavedCommentItem[] {
+  sections: readonly PeekdiffSavedCommentItem[],
+  entry: PeekdiffDeletedCommentEvent
+): PeekdiffSavedCommentItem[] {
   let sectionIndex = -1;
   for (let index = 0; index < sections.length; index++) {
     if (sections[index]?.itemId === entry.itemId) {

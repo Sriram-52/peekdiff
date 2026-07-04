@@ -6,10 +6,10 @@ import { IconCiWarningFill, IconRefresh } from '@pierre/icons';
 import { useChromeThemeProps } from './useChromeThemeProps';
 import { Button } from '@/components/Button';
 import { cn } from '@/lib/cn';
-import { diffshubChromeMapping } from '@/lib/theme/diffshubChromeMapping';
+import { peekdiffChromeMapping } from '@/lib/theme/peekdiffChromeMapping';
 import type { ViewerLoadState } from '@/lib/types';
 
-interface DiffsHubStatusPanelProps {
+interface PeekdiffStatusPanelProps {
   errorMessage: string | null;
   // When true the failure looks like a private repo the visitor hasn't
   // connected GitHub for; the panel offers `onConnect` instead of a retry.
@@ -19,19 +19,19 @@ interface DiffsHubStatusPanelProps {
   state: ViewerLoadState;
 }
 
-export function DiffsHubStatusPanel({
+export function PeekdiffStatusPanel({
   errorMessage,
   needsAuth = false,
   onConnect,
   onRetry,
   state,
-}: DiffsHubStatusPanelProps) {
+}: PeekdiffStatusPanelProps) {
   // Mirror the rest of the diffshub chrome so the loading screen sits on the
   // active Shiki theme's surface instead of the global light/dark palette.
   // Mounted before the viewer is available, so we lean on the same provider
   // useChromeThemeProps the header/sidebar use — the controller source keeps the
   // last-resolved theme, so this stays on-palette without flashing the default.
-  const { style: chromeStyle } = useChromeThemeProps(diffshubChromeMapping);
+  const { style: chromeStyle } = useChromeThemeProps(peekdiffChromeMapping);
   const themeChromeStyle =
     Object.keys(chromeStyle).length > 0 ? chromeStyle : undefined;
   const isError = state === 'error';

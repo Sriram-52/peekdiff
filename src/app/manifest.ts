@@ -17,7 +17,7 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: 'en',
     dir: 'ltr',
     background_color: '#ffffff',
-    // The body uses --diffshub-sidebar-bg (#f7f7f7) rather than plain white.
+    // The body uses --peekdiff-sidebar-bg (#f7f7f7) rather than plain white.
     // The manifest only accepts a single theme_color, so we use the light
     // value; dark-mode tinting is handled via themeColor in the viewport.
     theme_color: '#f7f7f7',

@@ -69,7 +69,7 @@ export const ExampleAnnotation = memo(function ExampleAnnotation({
         annotationCardBase,
         // Column layout; a 2px left accent stripe (derived from the fg token so
         // it reads on any theme) ties the thread to its code line.
-        'group relative flex-col gap-0 border-l-2 border-l-[color-mix(in_srgb,var(--diffshub-annotation-fg,var(--color-card-foreground))_32%,transparent)] cursor-pointer items-stretch py-2.5 hover:border-[var(--diffshub-annotation-hover-border,var(--diffshub-annotation-border,var(--color-border)))]'
+        'group relative flex-col gap-0 border-l-2 border-l-[color-mix(in_srgb,var(--peekdiff-annotation-fg,var(--color-card-foreground))_32%,transparent)] cursor-pointer items-stretch py-2.5 hover:border-[var(--peekdiff-annotation-hover-border,var(--peekdiff-annotation-border,var(--color-border)))]'
       )}
       onClick={() => onToggleSelection(selection)}
       onKeyDown={(event) => {
@@ -132,7 +132,7 @@ export const ExampleAnnotation = memo(function ExampleAnnotation({
             <CommentMarkdown text={message} className="text-[13px]" />
           </div>
           {replies.length > 0 && (
-            <div className="mt-2.5 ml-[10px] flex flex-col gap-3 border-l border-[var(--diffshub-annotation-border,var(--color-border))] pl-3">
+            <div className="mt-2.5 ml-[10px] flex flex-col gap-3 border-l border-[var(--peekdiff-annotation-border,var(--color-border))] pl-3">
               {replies.map((reply, index) => (
                 <div key={index} className="flex min-w-0 gap-2">
                   <CommentAuthorAvatar

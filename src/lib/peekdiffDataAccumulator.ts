@@ -10,22 +10,22 @@ import { getPatchTreePathPrefix } from './gitPatchMetadata';
 import { mapChangeTypeToGitStatus } from './mapChangeTypeToGitStatus';
 import type {
   CommentMetadata,
-  DiffsHubCommentFileByItemId,
-  DiffsHubCommentSidebarFile,
-  DiffsHubDiffStats,
-  DiffsHubFileTreeSource,
+  PeekdiffCommentFileByItemId,
+  PeekdiffCommentSidebarFile,
+  PeekdiffDiffStats,
+  PeekdiffFileTreeSource,
 } from './types';
 
-export interface DiffsHubDataAccumulator {
-  diffStats: DiffsHubDiffStats;
+export interface PeekdiffDataAccumulator {
+  diffStats: PeekdiffDiffStats;
   fileIndex: number;
   gitStatusByPath: Map<string, GitStatusEntry>;
-  itemIdToFile: Map<string, DiffsHubCommentSidebarFile>;
+  itemIdToFile: Map<string, PeekdiffCommentSidebarFile>;
   items: CodeViewItem<CommentMetadata>[];
-  // The last tree source emitted by snapshotDiffsHubTreeSource for this
+  // The last tree source emitted by snapshotPeekdiffTreeSource for this
   // accumulator. Each new snapshot links back to this so the consumer can
   // recognize append-only growth and skip the full PathStore rebuild.
-  lastTreeSource: DiffsHubFileTreeSource | undefined;
+  lastTreeSource: PeekdiffFileTreeSource | undefined;
   nextCollisionSuffixByBase: Map<string, number>;
   pendingGitStatusRemovePaths: Set<string>;
   pendingGitStatusSetByPath: Map<string, GitStatusEntry>;
@@ -36,7 +36,7 @@ export interface DiffsHubDataAccumulator {
   paths: string[];
 }
 
-export interface DiffsHubItemIdRename {
+export interface PeekdiffItemIdRename {
   oldId: string;
   newId: string;
 }
@@ -48,14 +48,14 @@ interface CodeViewPathState {
   sawDeleted: boolean;
 }
 
-export interface LoadedDiffsHubData {
-  itemIdToFile: DiffsHubCommentFileByItemId;
-  diffStats: DiffsHubDiffStats;
+export interface LoadedPeekdiffData {
+  itemIdToFile: PeekdiffCommentFileByItemId;
+  diffStats: PeekdiffDiffStats;
   items: CodeViewItem<CommentMetadata>[];
-  treeSource: DiffsHubFileTreeSource;
+  treeSource: PeekdiffFileTreeSource;
 }
 
-export function createDiffsHubDataAccumulator(): DiffsHubDataAccumulator {
+export function createPeekdiffDataAccumulator(): PeekdiffDataAccumulator {
   return {
     diffStats: {
       addedLines: 0,
@@ -79,11 +79,11 @@ export function createDiffsHubDataAccumulator(): DiffsHubDataAccumulator {
   };
 }
 
-export function appendFileDiffToDiffsHubData(
-  accumulator: DiffsHubDataAccumulator,
+export function appendFileDiffToPeekdiffData(
+  accumulator: PeekdiffDataAccumulator,
   fileDiff: FileDiffMetadata,
   treePathPrefix: string | undefined
-): DiffsHubItemIdRename | undefined {
+): PeekdiffItemIdRename | undefined {
   const { diffStats } = accumulator;
   diffStats.fileCount++;
   diffStats.totalLinesOfCode += fileDiff.unifiedLineCount;
@@ -146,8 +146,8 @@ export function appendFileDiffToDiffsHubData(
   return itemIdRename;
 }
 
-export function takePendingDiffsHubItems(
-  accumulator: DiffsHubDataAccumulator
+export function takePendingPeekdiffItems(
+  accumulator: PeekdiffDataAccumulator
 ): CodeViewItem<CommentMetadata>[] {
   const { pendingItems } = accumulator;
   accumulator.pendingItems = [];
@@ -161,12 +161,12 @@ export function takePendingDiffsHubItems(
 // delta with model.batch instead of rebuilding the whole PathStore. Consumers
 // that recreate the accumulator (e.g. a new request) discard the prior link
 // implicitly because lastTreeSource is undefined on a fresh accumulator.
-export function snapshotDiffsHubTreeSource(
-  accumulator: DiffsHubDataAccumulator
-): DiffsHubFileTreeSource {
+export function snapshotPeekdiffTreeSource(
+  accumulator: PeekdiffDataAccumulator
+): PeekdiffFileTreeSource {
   const previousSource = accumulator.lastTreeSource;
   const gitStatusPatch = takePendingGitStatusPatch(accumulator);
-  const snapshot: DiffsHubFileTreeSource = {
+  const snapshot: PeekdiffFileTreeSource = {
     gitStatus: Array.from(accumulator.gitStatusByPath.values()),
     gitStatusPatch: previousSource == null ? undefined : gitStatusPatch,
     pathCount: accumulator.paths.length,
@@ -179,7 +179,7 @@ export function snapshotDiffsHubTreeSource(
 }
 
 function takePendingGitStatusPatch(
-  accumulator: DiffsHubDataAccumulator
+  accumulator: PeekdiffDataAccumulator
 ): FileTreeGitStatusPatch | undefined {
   const { pendingGitStatusRemovePaths, pendingGitStatusSetByPath } =
     accumulator;
@@ -205,10 +205,10 @@ function takePendingGitStatusPatch(
 // Moves the current CodeView item for a path off the canonical tree id so the
 // next diff entry for that same path can own tree navigation without rebuilding.
 function renameCurrentPathItem(
-  accumulator: DiffsHubDataAccumulator,
+  accumulator: PeekdiffDataAccumulator,
   treePath: string,
   pathState: CodeViewPathState
-): DiffsHubItemIdRename | undefined {
+): PeekdiffItemIdRename | undefined {
   const oldId = pathState.currentItemId;
   const newId = createSupersededItemId(
     accumulator,
@@ -235,7 +235,7 @@ function renameCurrentPathItem(
 }
 
 function createSupersededItemId(
-  accumulator: DiffsHubDataAccumulator,
+  accumulator: PeekdiffDataAccumulator,
   treePath: string,
   changeType: ChangeTypes
 ): string {
@@ -244,7 +244,7 @@ function createSupersededItemId(
 }
 
 function createFallbackItemId(
-  accumulator: DiffsHubDataAccumulator,
+  accumulator: PeekdiffDataAccumulator,
   treePath: string
 ): string {
   return createUniqueItemId(accumulator, `${treePath}?2`);
@@ -253,7 +253,7 @@ function createFallbackItemId(
 // Resolves rare id collisions by advancing a per-base suffix instead of scanning
 // accumulated items.
 function createUniqueItemId(
-  accumulator: DiffsHubDataAccumulator,
+  accumulator: PeekdiffDataAccumulator,
   baseId: string
 ): string {
   if (!accumulator.itemIdToFile.has(baseId)) {
@@ -273,7 +273,7 @@ function createUniqueItemId(
 // Maintains the file tree status for a real path while repeated patch entries
 // replace the path's final CodeView item.
 function updateGitStatusByPath(
-  accumulator: DiffsHubDataAccumulator,
+  accumulator: PeekdiffDataAccumulator,
   treePath: string,
   changeType: ChangeTypes,
   hadDeletedEntry: boolean
@@ -308,7 +308,7 @@ function updateGitStatusByPath(
 }
 
 function recordGitStatusSet(
-  accumulator: DiffsHubDataAccumulator,
+  accumulator: PeekdiffDataAccumulator,
   entry: GitStatusEntry
 ): void {
   accumulator.pendingGitStatusRemovePaths.delete(entry.path);
@@ -316,30 +316,30 @@ function recordGitStatusSet(
 }
 
 function recordGitStatusRemove(
-  accumulator: DiffsHubDataAccumulator,
+  accumulator: PeekdiffDataAccumulator,
   path: string
 ): void {
   accumulator.pendingGitStatusSetByPath.delete(path);
   accumulator.pendingGitStatusRemovePaths.add(path);
 }
 
-export function snapshotDiffsHubData(
-  accumulator: DiffsHubDataAccumulator
-): LoadedDiffsHubData {
+export function snapshotPeekdiffData(
+  accumulator: PeekdiffDataAccumulator
+): LoadedPeekdiffData {
   return {
     itemIdToFile: new Map(accumulator.itemIdToFile),
     diffStats: { ...accumulator.diffStats },
     items: accumulator.items.slice(),
-    treeSource: snapshotDiffsHubTreeSource(accumulator),
+    treeSource: snapshotPeekdiffTreeSource(accumulator),
   };
 }
 
 // Converts raw patch text into the exact state slices consumed by the diff
 // viewer, sidebar tree, stats panel, and comment index in one linear pass.
-export function buildDiffsHubData(
+export function buildPeekdiffData(
   patchContent: string,
   githubPath: string
-): LoadedDiffsHubData {
+): LoadedPeekdiffData {
   console.time('--  parsing patches');
   const parsedPatches = parsePatchFiles(
     patchContent,
@@ -349,17 +349,17 @@ export function buildDiffsHubData(
   console.timeEnd('--  parsing patches');
 
   console.time('-- computing layout');
-  const accumulator = createDiffsHubDataAccumulator();
+  const accumulator = createPeekdiffDataAccumulator();
   const shouldPrefixTreePaths = parsedPatches.length > 1;
   for (const [patchIndex, patch] of parsedPatches.entries()) {
     const treePathPrefix = shouldPrefixTreePaths
       ? getPatchTreePathPrefix(patch.patchMetadata, patchIndex)
       : undefined;
     for (const fileDiff of patch.files) {
-      appendFileDiffToDiffsHubData(accumulator, fileDiff, treePathPrefix);
+      appendFileDiffToPeekdiffData(accumulator, fileDiff, treePathPrefix);
     }
   }
   console.timeEnd('-- computing layout');
 
-  return snapshotDiffsHubData(accumulator);
+  return snapshotPeekdiffData(accumulator);
 }

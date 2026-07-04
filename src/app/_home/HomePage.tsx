@@ -3,7 +3,7 @@
 // Deliberately not a port of DiffsHub's marketing page.
 import Link from 'next/link';
 
-import { PeekDiffLogo } from '@/components/PeekDiffLogo';
+import { PeekdiffLogo } from '@/components/PeekdiffLogo';
 
 import { HomeFetchForm } from './HomeFetchForm';
 
@@ -16,10 +16,10 @@ const HERO_DIFF: { type: 'del' | 'add'; text: string }[] = [
 
 export function HomePage() {
   return (
-    <div className="flex min-h-[100svh] flex-col items-center justify-center px-6 md:bg-[var(--diffshub-sidebar-bg)]">
+    <div className="flex min-h-[100svh] flex-col items-center justify-center px-6 md:bg-[var(--peekdiff-sidebar-bg)]">
       <main className="w-full max-w-xl space-y-6">
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <PeekDiffLogo />
+          <PeekdiffLogo />
           peekdiff
         </h1>
 

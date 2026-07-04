@@ -1,11 +1,11 @@
 // Stays app-local. Pure mapping from the resolved active theme to a chrome CSS
 // style. Runs deriveChromeTokens on the active theme and hands the derived
-// tokens to a caller-supplied mapping (diffshub uses diffshubChromeMapping).
+// tokens to a caller-supplied mapping (diffshub uses peekdiffChromeMapping).
 // Returns a spreadable { style } that is an empty object until a theme resolves.
 import type { CSSProperties } from 'react';
 
 import { deriveChromeTokens } from './deriveChromeTokens';
-import type { ChromeMapping } from './diffshubChromeMapping';
+import type { ChromeMapping } from './peekdiffChromeMapping';
 import type { ActiveThemeSnapshot } from './ThemeSource';
 
 export type { ChromeMapping };

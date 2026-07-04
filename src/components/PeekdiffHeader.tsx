@@ -30,7 +30,7 @@ import {
 } from 'react';
 
 import { CHROME_ICON_BUTTON_CLASS } from './chromeButtonStyles';
-import { PeekDiffLogo } from './PeekDiffLogo';
+import { PeekdiffLogo } from './PeekdiffLogo';
 import { DiffUrlForm } from './DiffUrlForm';
 import { useChromeThemeProps } from './useChromeThemeProps';
 import { Button } from '@/components/Button';
@@ -44,7 +44,7 @@ import {
 import { Switch } from '@/components/Switch';
 import { docsThemeCatalog } from '@/components/themeCatalog';
 import { cn } from '@/lib/cn';
-import { diffshubChromeMapping } from '@/lib/theme/diffshubChromeMapping';
+import { peekdiffChromeMapping } from '@/lib/theme/peekdiffChromeMapping';
 import { getDropdownThemeStyle } from '@/lib/theme/dropdownChromeStyle';
 
 type LightThemeName = string;
@@ -79,7 +79,7 @@ interface HeaderProps {
   showBackgrounds: boolean;
 }
 
-export const DiffsHubHeader = memo(function DiffsHubHeader({
+export const PeekdiffHeader = memo(function PeekdiffHeader({
   className,
   collapseMode,
   colorMode,
@@ -113,7 +113,7 @@ export const DiffsHubHeader = memo(function DiffsHubHeader({
   // light/dark palette. Falls back to the diffshub-sidebar-bg CSS variable
   // on first render while the theme is still resolving.
   const { style: headerChromeStyle } = useChromeThemeProps(
-    diffshubChromeMapping
+    peekdiffChromeMapping
   );
   const themeChromeStyle =
     Object.keys(headerChromeStyle).length > 0 ? headerChromeStyle : undefined;
@@ -126,7 +126,7 @@ export const DiffsHubHeader = memo(function DiffsHubHeader({
       className={cn(
         'z-10 contain-layout contain-paint flex flex-wrap md:flex-nowrap items-center gap-2.5 pt-3 pb-2 px-4 md:px-3 md:py-1.5 border-b border-[var(--color-border-opaque)]',
         themeChromeStyle == null &&
-          'bg-background md:bg-[var(--diffshub-sidebar-bg)]',
+          'bg-background md:bg-[var(--peekdiff-sidebar-bg)]',
         className
       )}
       style={themeChromeStyle}
@@ -135,7 +135,7 @@ export const DiffsHubHeader = memo(function DiffsHubHeader({
         href="/"
         className="absolute top-4 left-[50%] inline-flex -translate-x-1/2 transition-transform duration-200 hover:scale-110 md:static md:translate-x-0"
       >
-        <PeekDiffLogo />
+        <PeekdiffLogo />
       </Link>
       <DiffUrlForm
         className="order-last md:order-none md:mr-auto"

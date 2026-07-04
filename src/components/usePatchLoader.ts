@@ -35,18 +35,18 @@ import {
   reviewThreadsToCommentSections,
 } from '@/lib/github/reviews';
 import {
-  appendFileDiffToDiffsHubData,
-  buildDiffsHubData,
-  createDiffsHubDataAccumulator,
-  type DiffsHubItemIdRename,
-  snapshotDiffsHubTreeSource,
-  takePendingDiffsHubItems,
-} from '@/lib/diffsHubDataAccumulator';
+  appendFileDiffToPeekdiffData,
+  buildPeekdiffData,
+  createPeekdiffDataAccumulator,
+  type PeekdiffItemIdRename,
+  snapshotPeekdiffTreeSource,
+  takePendingPeekdiffItems,
+} from '@/lib/peekdiffDataAccumulator';
 import { getPatchTreePathPrefix } from '@/lib/gitPatchMetadata';
 import {
-  type DiffsHubLineHashTarget,
-  formatDiffsHubLineHash,
-  parseDiffsHubLineHash,
+  type PeekdiffLineHashTarget,
+  formatPeekdiffLineHash,
+  parsePeekdiffLineHash,
 } from '@/lib/lineHash';
 import {
   getStreamedPatchMetadata,
@@ -54,10 +54,10 @@ import {
 } from '@/lib/streamGitPatchFiles';
 import type {
   CommentMetadata,
-  DiffsHubCommentFileByItemId,
-  DiffsHubDiffStats,
-  DiffsHubFileTreeSource,
-  DiffsHubSavedCommentItem,
+  PeekdiffCommentFileByItemId,
+  PeekdiffDiffStats,
+  PeekdiffFileTreeSource,
+  PeekdiffSavedCommentItem,
   ViewerLoadState,
 } from '@/lib/types';
 
@@ -83,9 +83,9 @@ interface UsePatchLoaderOptions {
 
 interface UsePatchLoaderResult {
   applyCollapseModeToLoaded(mode: 'expanded' | 'collapsed'): void;
-  commentFileByItemId: DiffsHubCommentFileByItemId | null;
-  commentSections: DiffsHubSavedCommentItem[];
-  diffStats: DiffsHubDiffStats | null;
+  commentFileByItemId: PeekdiffCommentFileByItemId | null;
+  commentSections: PeekdiffSavedCommentItem[];
+  diffStats: PeekdiffDiffStats | null;
   errorMessage: string | null;
   initialItems: CodeViewItem<CommentMetadata>[];
   loadState: ViewerLoadState;
@@ -98,8 +98,8 @@ interface UsePatchLoaderResult {
   // sidebar comments with them (used after submitting a review/reply).
   reloadComments(): Promise<void>;
   retryLoad(): void;
-  setCommentSections: Dispatch<SetStateAction<DiffsHubSavedCommentItem[]>>;
-  treeSource: DiffsHubFileTreeSource | null;
+  setCommentSections: Dispatch<SetStateAction<PeekdiffSavedCommentItem[]>>;
+  treeSource: PeekdiffFileTreeSource | null;
   viewerKey: number;
 }
 
@@ -117,14 +117,14 @@ export function usePatchLoader({
   // Tree data is intentionally stored separately from items so annotation
   // updates do not cascade into the file tree and trigger needless rebuilds.
   // It is updated by fetch/stream batches in this viewer route.
-  const [treeSource, setTreeSource] = useState<DiffsHubFileTreeSource | null>(
+  const [treeSource, setTreeSource] = useState<PeekdiffFileTreeSource | null>(
     null
   );
-  const [diffStats, setDiffStats] = useState<DiffsHubDiffStats | null>(null);
+  const [diffStats, setDiffStats] = useState<PeekdiffDiffStats | null>(null);
   const [commentFileByItemId, setCommentFileByItemId] =
-    useState<DiffsHubCommentFileByItemId | null>(null);
+    useState<PeekdiffCommentFileByItemId | null>(null);
   const [commentSections, setCommentSections] = useState<
-    DiffsHubSavedCommentItem[]
+    PeekdiffSavedCommentItem[]
   >([]);
   const [loadState, setLoadState] = useState<ViewerLoadState>('fetching');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -211,7 +211,7 @@ export function usePatchLoader({
   // GitHub set (keys prefixed "gh-") so a reload after posting doesn't stack
   // duplicates, while leaving locally-drafted annotations untouched.
   const applyLoadedThreadAnnotations = useStableCallback(
-    (sections: DiffsHubSavedCommentItem[]) => {
+    (sections: PeekdiffSavedCommentItem[]) => {
       const byItem = new Map<string, DiffLineAnnotation<CommentMetadata>[]>();
       for (const section of sections) {
         for (const entry of section.comments) {
@@ -288,7 +288,7 @@ export function usePatchLoader({
 
   const tryApplyLineHashTarget = useStableCallback(() => {
     const { hash } = window.location;
-    const target = parseDiffsHubLineHash(hash);
+    const target = parsePeekdiffLineHash(hash);
     if (target == null) {
       return;
     }
@@ -303,7 +303,7 @@ export function usePatchLoader({
       return;
     }
 
-    if (applyDiffsHubLineHashTarget(viewer, target)) {
+    if (applyPeekdiffLineHashTarget(viewer, target)) {
       appliedLineHashKeyRef.current = applyKey;
     }
   });
@@ -311,7 +311,7 @@ export function usePatchLoader({
   const handleLineLinkChange = useStableCallback(
     (selection: CodeViewLineSelection | null) => {
       const nextHash =
-        selection == null ? null : formatDiffsHubLineHash(selection);
+        selection == null ? null : formatPeekdiffLineHash(selection);
       appliedLineHashKeyRef.current =
         nextHash == null
           ? null
@@ -355,7 +355,7 @@ export function usePatchLoader({
         // sidebar once the diff is parsed. Requires a token and a PR path;
         // never blocks or breaks diff rendering (failures are logged only).
         async function loadReviewCommentsInto(
-          fileByItemId: DiffsHubCommentFileByItemId
+          fileByItemId: PeekdiffCommentFileByItemId
         ) {
           if (authToken == null || authToken === '') {
             return;
@@ -401,7 +401,7 @@ export function usePatchLoader({
           if (!isCurrentRequest()) {
             return;
           }
-          const loadedData = buildDiffsHubData(patchContent, patchRequestKey);
+          const loadedData = buildPeekdiffData(patchContent, patchRequestKey);
           if (!isCurrentRequest()) {
             return;
           }
@@ -494,7 +494,7 @@ export function usePatchLoader({
           return;
         }
 
-        const accumulator = createDiffsHubDataAccumulator();
+        const accumulator = createPeekdiffDataAccumulator();
         let streamPatchIndex = 0;
         let streamTreePathPrefix: string | undefined;
         let pendingPublishFileCount = 0;
@@ -517,7 +517,7 @@ export function usePatchLoader({
           lastTreePublishTime = performance.now();
           setCommentFileByItemId(accumulator.itemIdToFile);
           setDiffStats({ ...accumulator.diffStats });
-          setTreeSource(snapshotDiffsHubTreeSource(accumulator));
+          setTreeSource(snapshotPeekdiffTreeSource(accumulator));
         };
 
         const publishPendingData = async () => {
@@ -527,7 +527,7 @@ export function usePatchLoader({
 
           pendingPublishFileCount = 0;
           lastPublishTime = performance.now();
-          const pendingItems = takePendingDiffsHubItems(accumulator);
+          const pendingItems = takePendingPeekdiffItems(accumulator);
           prepareItemsForViewer(pendingItems);
           if (!hasPublishedInitialItems) {
             hasPublishedInitialItems = true;
@@ -618,13 +618,13 @@ export function usePatchLoader({
             return;
           }
 
-          const itemIdRename = appendFileDiffToDiffsHubData(
+          const itemIdRename = appendFileDiffToPeekdiffData(
             accumulator,
             fileDiff,
             streamTreePathPrefix
           );
           if (itemIdRename != null) {
-            applyDiffsHubItemIdRename(viewerRef.current, itemIdRename);
+            applyPeekdiffItemIdRename(viewerRef.current, itemIdRename);
             if (loadedItemIdsRef.current.delete(itemIdRename.oldId)) {
               loadedItemIdsRef.current.add(itemIdRename.newId);
             }
@@ -753,9 +753,9 @@ function getLineHashApplyKey(viewerKey: number, hash: string): string {
   return `${viewerKey}:${hash}`;
 }
 
-function applyDiffsHubLineHashTarget(
+function applyPeekdiffLineHashTarget(
   viewer: CodeViewHandle<CommentMetadata>,
-  target: DiffsHubLineHashTarget
+  target: PeekdiffLineHashTarget
 ): boolean {
   const item = viewer.getItem(target.itemId);
   if (item == null) {
@@ -790,9 +790,9 @@ function applyDiffsHubLineHashTarget(
   return true;
 }
 
-function applyDiffsHubItemIdRename(
+function applyPeekdiffItemIdRename(
   viewer: CodeViewHandle<CommentMetadata> | null,
-  rename: DiffsHubItemIdRename
+  rename: PeekdiffItemIdRename
 ): void {
   viewer?.updateItemId(rename.oldId, rename.newId);
 }

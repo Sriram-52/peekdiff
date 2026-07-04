@@ -2,7 +2,7 @@ import { normalizeGitHubPath } from './normalizeGitHubPath';
 
 const GITHUB_HOST = 'github.com';
 
-export type DiffshubViewerRoute =
+export type PeekdiffViewerRoute =
   | { kind: 'redirect'; target: string }
   | {
       kind: 'render';
@@ -17,10 +17,10 @@ export type DiffshubViewerRoute =
 // GitHub paths are canonicalized via normalizeGitHubPath so direct navigation
 // matches the hrefs getPatchViewerHref produces from form input. Non-GitHub
 // hosts are passed through unchanged because their canonical form is unknown.
-export function resolveDiffshubViewerRoute(
+export function resolvePeekdiffViewerRoute(
   pathSegments: readonly string[],
   requestedDomainInput: string | undefined
-): DiffshubViewerRoute {
+): PeekdiffViewerRoute {
   if (pathSegments.length === 0) {
     return { kind: 'redirect', target: '/' };
   }

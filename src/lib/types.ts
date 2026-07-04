@@ -1,6 +1,6 @@
 // Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
 // peekdiff authors: added optional GitHub-origin fields to
-// DiffsHubSavedCommentEntry (+ GitHubReplyPreview) so real PR review threads
+// PeekdiffSavedCommentEntry (+ GitHubReplyPreview) so real PR review threads
 // loaded from api.github.com can be displayed alongside local draft comments.
 import type { AnnotationSide, SelectedLineRange } from '@pierre/diffs';
 import type { FileTreeGitStatusPatch, GitStatusEntry } from '@pierre/trees';
@@ -36,14 +36,14 @@ export interface DraftCommentMetadata {
 
 export type CommentMetadata = SavedCommentMetadata | DraftCommentMetadata;
 
-export interface DiffsHubCommentSidebarFile {
+export interface PeekdiffCommentSidebarFile {
   fileOrder: number;
   path: string;
 }
 
-export type DiffsHubCommentFileByItemId = ReadonlyMap<
+export type PeekdiffCommentFileByItemId = ReadonlyMap<
   string,
-  DiffsHubCommentSidebarFile
+  PeekdiffCommentSidebarFile
 >;
 
 // Whether the line the comment is anchored to is a real addition/deletion or
@@ -51,7 +51,7 @@ export type DiffsHubCommentFileByItemId = ReadonlyMap<
 // render "Line N" without a misleading + / - sigil for context lines.
 export type CommentLineType = 'change' | 'context';
 
-export interface DiffsHubSavedCommentEvent {
+export interface PeekdiffSavedCommentEvent {
   author: string;
   itemId: string;
   key: string;
@@ -62,7 +62,7 @@ export interface DiffsHubSavedCommentEvent {
   side: AnnotationSide;
 }
 
-export interface DiffsHubDeletedCommentEvent {
+export interface PeekdiffDeletedCommentEvent {
   itemId: string;
   key: string;
 }
@@ -74,7 +74,7 @@ export interface GitHubReplyPreview {
   body: string;
 }
 
-export interface DiffsHubSavedCommentEntry {
+export interface PeekdiffSavedCommentEntry {
   author: string;
   itemId: string;
   key: string;
@@ -91,15 +91,15 @@ export interface DiffsHubSavedCommentEntry {
   githubReplies?: GitHubReplyPreview[];
 }
 
-export interface DiffsHubSavedCommentItem {
-  comments: DiffsHubSavedCommentEntry[];
+export interface PeekdiffSavedCommentItem {
+  comments: PeekdiffSavedCommentEntry[];
   fileOrder: number;
   itemId: string;
   path: string;
 }
 
 // The fully pre-computed input this tree needs for a given fetch. It is built
-// once at fetch time by snapshotDiffsHubTreeSource and stored alongside the
+// once at fetch time by snapshotPeekdiffTreeSource and stored alongside the
 // viewer items, so later per-item annotation updates do not feed into the
 // tree and do not cause it to rebuild.
 //
@@ -116,16 +116,16 @@ export interface DiffsHubSavedCommentItem {
 // iterating `paths`. The `readonly` markers and ReadonlyMap type enforce the
 // read-only side; pathCount is what keeps later in-place growth invisible to
 // this snapshot.
-export interface DiffsHubFileTreeSource {
+export interface PeekdiffFileTreeSource {
   gitStatus: readonly GitStatusEntry[];
   gitStatusPatch?: FileTreeGitStatusPatch;
   pathCount: number;
   paths: readonly string[];
   pathToItemId: ReadonlyMap<string, string>;
-  previousSource?: DiffsHubFileTreeSource;
+  previousSource?: PeekdiffFileTreeSource;
 }
 
-export interface DiffsHubDiffStats {
+export interface PeekdiffDiffStats {
   addedLines: number;
   deletedLines: number;
   fileCount: number;

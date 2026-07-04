@@ -9,9 +9,9 @@
 import type { AnnotationSide } from '@pierre/diffs';
 
 import type {
-  DiffsHubCommentFileByItemId,
-  DiffsHubSavedCommentEntry,
-  DiffsHubSavedCommentItem,
+  PeekdiffCommentFileByItemId,
+  PeekdiffSavedCommentEntry,
+  PeekdiffSavedCommentItem,
   GitHubReplyPreview,
 } from '@/lib/types';
 
@@ -427,8 +427,8 @@ function toThreadComment(raw: RawReviewComment): ReviewThreadComment {
 // file is not present in the current diff are skipped and counted.
 export function reviewThreadsToCommentSections(
   threads: readonly ReviewThread[],
-  commentFileByItemId: DiffsHubCommentFileByItemId | null
-): { sections: DiffsHubSavedCommentItem[]; skippedNotInDiff: number } {
+  commentFileByItemId: PeekdiffCommentFileByItemId | null
+): { sections: PeekdiffSavedCommentItem[]; skippedNotInDiff: number } {
   if (commentFileByItemId == null) {
     return { sections: [], skippedNotInDiff: threads.length };
   }
@@ -442,7 +442,7 @@ export function reviewThreadsToCommentSections(
     }
   }
 
-  const byItemId = new Map<string, DiffsHubSavedCommentItem>();
+  const byItemId = new Map<string, PeekdiffSavedCommentItem>();
   let skippedNotInDiff = 0;
 
   for (const thread of threads) {
@@ -462,7 +462,7 @@ export function reviewThreadsToCommentSections(
         body: reply.body,
       }));
 
-    const entry: DiffsHubSavedCommentEntry = {
+    const entry: PeekdiffSavedCommentEntry = {
       author: root.login,
       itemId: target.itemId,
       key: `gh-${thread.rootId}`,

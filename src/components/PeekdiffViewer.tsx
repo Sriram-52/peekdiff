@@ -38,11 +38,11 @@ import { isDiffItem } from '@/lib/isDiffItem';
 import { isDraftAnnotation } from '@/lib/isDraftAnnotation';
 import { isDraftMetadata } from '@/lib/isDraftMetadata';
 import { isSavedAnnotation } from '@/lib/isSavedAnnotation';
-import { diffshubChromeMapping } from '@/lib/theme/diffshubChromeMapping';
+import { peekdiffChromeMapping } from '@/lib/theme/peekdiffChromeMapping';
 import type {
   CommentMetadata,
-  DiffsHubDeletedCommentEvent,
-  DiffsHubSavedCommentEvent,
+  PeekdiffDeletedCommentEvent,
+  PeekdiffSavedCommentEvent,
 } from '@/lib/types';
 
 function getNextItemVersion(item: CodeViewItem<CommentMetadata>): number {
@@ -72,15 +72,15 @@ interface ActiveDraftComment {
   key: string;
 }
 
-interface DiffsHubViewerProps {
+interface PeekdiffViewerProps {
   className?: string;
   // The real GitHub user to attribute new comments to; falls back to a local
   // persona when absent (unauthenticated / demo).
   authorLogin?: string;
   authorAvatarUrl?: string;
   diffStyle: 'split' | 'unified';
-  onCommentDeleted(comment: DiffsHubDeletedCommentEvent): void;
-  onCommentSaved(comment: DiffsHubSavedCommentEvent): void;
+  onCommentDeleted(comment: PeekdiffDeletedCommentEvent): void;
+  onCommentSaved(comment: PeekdiffSavedCommentEvent): void;
   overflow: 'wrap' | 'scroll';
   showBackgrounds: boolean;
   diffIndicators: DiffIndicators;
@@ -97,7 +97,7 @@ interface DiffsHubViewerProps {
   onViewerReady(): void;
 }
 
-export const DiffsHubViewer = memo(function DiffsHubViewer({
+export const PeekdiffViewer = memo(function PeekdiffViewer({
   className,
   authorLogin,
   authorAvatarUrl,
@@ -116,12 +116,12 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
   onToggleViewed,
   onLineLinkChange,
   onViewerReady,
-}: DiffsHubViewerProps) {
+}: PeekdiffViewerProps) {
   const nextCommentKeyRef = useRef(0);
   const activeDraftRef = useRef<ActiveDraftComment | null>(null);
   const [selectedLines, setSelectedLines] =
     useState<CodeViewLineSelection | null>(null);
-  const { style: chromeStyle } = useChromeThemeProps(diffshubChromeMapping);
+  const { style: chromeStyle } = useChromeThemeProps(peekdiffChromeMapping);
   // Preserve the previous `undefined`-means-not-resolved contract that
   // buildAnnotationThemeStyle and the className fallbacks depend on.
   const themeChromeStyle =
@@ -545,7 +545,7 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
       initialItems={initialItems}
       className={cn(
         className,
-        'cv-scrollbar relative h-full min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-clip overscroll-contain border-b border-border w-full [contain:strict] [overflow-anchor:none] [will-change:scroll-position] md:border-b-0 [&_diffs-container]:overflow-clip [&_diffs-container]:[contain:layout_paint_style] [&_diffs-container]:shadow-[0_-1px_0_var(--diffshub-diff-separator,var(--color-border-opaque)),0_1px_0_var(--diffshub-diff-separator,var(--color-border-opaque))]'
+        'cv-scrollbar relative h-full min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-clip overscroll-contain border-b border-border w-full [contain:strict] [overflow-anchor:none] [will-change:scroll-position] md:border-b-0 [&_diffs-container]:overflow-clip [&_diffs-container]:[contain:layout_paint_style] [&_diffs-container]:shadow-[0_-1px_0_var(--peekdiff-diff-separator,var(--color-border-opaque)),0_1px_0_var(--peekdiff-diff-separator,var(--color-border-opaque))]'
       )}
       options={options}
       style={annotationThemeStyle}

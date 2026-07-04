@@ -5,21 +5,21 @@ import { memo, useEffect } from 'react';
 
 import { StatItem } from './StatItem';
 import { StatusRow } from './StatusRow';
-import type { DiffsHubDiffStats as DiffsHubDiffStatsData } from '@/lib/types';
+import type { PeekdiffDiffStats as PeekdiffDiffStatsData } from '@/lib/types';
 
-interface DiffsHubDiffStatsProps {
+interface PeekdiffDiffStatsProps {
   expanded: boolean;
   onToggle(): void;
-  stats: DiffsHubDiffStatsData | null;
+  stats: PeekdiffDiffStatsData | null;
   streaming: boolean;
 }
 
-export const DiffsHubDiffStats = memo(function DiffsHubDiffStats({
+export const PeekdiffDiffStats = memo(function PeekdiffDiffStats({
   expanded,
   onToggle,
   stats,
   streaming,
-}: DiffsHubDiffStatsProps) {
+}: PeekdiffDiffStatsProps) {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'F2') {

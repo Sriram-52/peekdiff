@@ -1,19 +1,19 @@
 import type { CSSProperties } from 'react';
 
 const ANNOTATION_THEME_STYLE_KEYS = [
-  '--diffshub-annotation-bg',
-  '--diffshub-annotation-border',
-  '--diffshub-annotation-fg',
-  '--diffshub-annotation-hover-border',
-  '--diffshub-annotation-shadow',
-  '--diffshub-popover-muted-fg',
+  '--peekdiff-annotation-bg',
+  '--peekdiff-annotation-border',
+  '--peekdiff-annotation-fg',
+  '--peekdiff-annotation-hover-border',
+  '--peekdiff-annotation-shadow',
+  '--peekdiff-popover-muted-fg',
   // Inter-file separator hairline. Carries the themed border-opaque value
   // (same weight as the header/sidebar chrome borders) so it stays visible
   // on any theme without reading darker than the surrounding chrome.
-  '--diffshub-diff-separator',
+  '--peekdiff-diff-separator',
   // Main scrollbar thumb + gutter tint; this element is the cv-scrollbar host.
-  '--diffshub-scrollbar-thumb-bg',
-  '--diffshub-scrollbar-track-bg',
+  '--peekdiff-scrollbar-thumb-bg',
+  '--peekdiff-scrollbar-track-bg',
 ] as const;
 
 export function buildAnnotationThemeStyle(

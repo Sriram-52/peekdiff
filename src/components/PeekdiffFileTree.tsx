@@ -32,7 +32,7 @@ import {
   CODE_VIEW_FILE_TREE_ITEM_HEIGHT,
   getInitialBatchSize,
 } from '@/lib/constants';
-import type { DiffsHubFileTreeSource } from '@/lib/types';
+import type { PeekdiffFileTreeSource } from '@/lib/types';
 type FileTreeSortComparator = Exclude<
   NonNullable<FileTreeOptions['sort']>,
   'default'
@@ -52,7 +52,7 @@ const DENSITY_OVERRIDE_STYLES = {
   '--trees-git-renamed-color-override': 'light-dark(#007aff, #007aff)',
 } as CSSProperties;
 
-interface DiffsHubFileTreeProps {
+interface PeekdiffFileTreeProps {
   // Callback invoked with the underlying tree model once it's mounted, and
   // again with `null` on unmount. Lets parents drive imperative APIs like
   // search open/close without owning the model creation.
@@ -63,7 +63,7 @@ interface DiffsHubFileTreeProps {
   // as viewed" bulk action. Single-file navigation still flows through
   // onSelectItem.
   onSelectionPathsChange?(paths: readonly string[]): void;
-  source: DiffsHubFileTreeSource;
+  source: PeekdiffFileTreeSource;
   // Tree paths marked "viewed"; rendered as a checkmark decoration. Read via a
   // ref because useFileTree captures its options once.
   viewedPaths?: ReadonlySet<string>;
@@ -73,7 +73,7 @@ interface DiffsHubFileTreeProps {
   onSetFileViewed?(filePath: string, viewed: boolean): void;
 }
 
-export const DiffsHubFileTree = memo(function DiffsHubFileTree({
+export const PeekdiffFileTree = memo(function PeekdiffFileTree({
   onModelReady,
   onSelectItem,
   onSelectionPathsChange,
@@ -81,7 +81,7 @@ export const DiffsHubFileTree = memo(function DiffsHubFileTree({
   viewedPaths,
   onSetFolderViewed,
   onSetFileViewed,
-}: DiffsHubFileTreeProps) {
+}: PeekdiffFileTreeProps) {
   const sourceRef = useRef(source);
   const previousSourceRef = useRef(source);
   const [initialVisibleRowCount] = useState(getInitialBatchSize);

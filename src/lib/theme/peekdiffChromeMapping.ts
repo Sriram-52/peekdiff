@@ -1,7 +1,7 @@
 // Stays app-local. The diffshub-specific mapping from neutral ChromeTokens to
 // the app's CSS variables — preserved byte-for-byte from the previous
-// buildThemeChromeStyle (the --diffshub-*/--color-*/--foreground vocabulary plus
-// the app-only --diffshub-card-* (6/12/12) and annotation-hover-border (28%)
+// buildThemeChromeStyle (the --peekdiff-*/--color-*/--foreground vocabulary plus
+// the app-only --peekdiff-card-* (6/12/12) and annotation-hover-border (28%)
 // mixes). Only the handful of diffshub-specific surfaces the neutral set does
 // not carry are derived locally from the same foreground/surface pair.
 import type { ThemeLike } from '@pierre/theming';
@@ -19,7 +19,7 @@ export type ChromeMapping = (
   theme: ThemeLike
 ) => CSSProperties | undefined;
 
-export const diffshubChromeMapping: ChromeMapping = (chrome, theme) => {
+export const peekdiffChromeMapping: ChromeMapping = (chrome, theme) => {
   // Mirror the previous behavior: the chrome background is the resolved theme's
   // sidebar background, read straight from the shared normalizeThemeColors
   // surface derivation (the same key trees and deriveChromeTokens read).
@@ -52,22 +52,22 @@ export const diffshubChromeMapping: ChromeMapping = (chrome, theme) => {
   // diffshub-specific card surfaces: a touch softer than the popover (6/12/12
   // vs the neutral 7/14/20 set), so they read as quiet inline rows rather than
   // floating menus. Not part of the shared ChromeTokens.
-  style['--diffshub-card-bg'] = `color-mix(in srgb, ${fg} 6%, ${base})`;
-  style['--diffshub-card-hover-bg'] = `color-mix(in srgb, ${fg} 12%, ${base})`;
-  style['--diffshub-card-border'] = `color-mix(in srgb, ${fg} 12%, ${base})`;
-  style['--diffshub-popover-bg'] = chrome.surface;
-  style['--diffshub-popover-fg'] = fg;
-  style['--diffshub-popover-muted-fg'] = chrome.mutedFg;
-  style['--diffshub-popover-hover-bg'] = chrome.surfaceHover;
-  style['--diffshub-popover-selected-bg'] = chrome.surfaceSelected;
-  style['--diffshub-popover-border'] = chrome.surfaceBorder;
-  style['--diffshub-popover-shadow'] = chrome.surfaceShadow;
-  style['--diffshub-annotation-bg'] = chrome.surface;
-  style['--diffshub-annotation-fg'] = fg;
-  style['--diffshub-annotation-border'] = chrome.surfaceBorder;
-  style['--diffshub-annotation-hover-border'] =
+  style['--peekdiff-card-bg'] = `color-mix(in srgb, ${fg} 6%, ${base})`;
+  style['--peekdiff-card-hover-bg'] = `color-mix(in srgb, ${fg} 12%, ${base})`;
+  style['--peekdiff-card-border'] = `color-mix(in srgb, ${fg} 12%, ${base})`;
+  style['--peekdiff-popover-bg'] = chrome.surface;
+  style['--peekdiff-popover-fg'] = fg;
+  style['--peekdiff-popover-muted-fg'] = chrome.mutedFg;
+  style['--peekdiff-popover-hover-bg'] = chrome.surfaceHover;
+  style['--peekdiff-popover-selected-bg'] = chrome.surfaceSelected;
+  style['--peekdiff-popover-border'] = chrome.surfaceBorder;
+  style['--peekdiff-popover-shadow'] = chrome.surfaceShadow;
+  style['--peekdiff-annotation-bg'] = chrome.surface;
+  style['--peekdiff-annotation-fg'] = fg;
+  style['--peekdiff-annotation-border'] = chrome.surfaceBorder;
+  style['--peekdiff-annotation-hover-border'] =
     `color-mix(in srgb, ${fg} 28%, ${base})`;
-  style['--diffshub-annotation-shadow'] = chrome.surfaceShadow;
+  style['--peekdiff-annotation-shadow'] = chrome.surfaceShadow;
   style['--color-popover'] = chrome.surface;
   style['--popover'] = chrome.surface;
   style['--color-popover-foreground'] = fg;
@@ -99,14 +99,14 @@ export const diffshubChromeMapping: ChromeMapping = (chrome, theme) => {
   style['--primary-foreground'] = chrome.background;
   style['--color-ring'] = chrome.ring;
   style['--ring'] = chrome.ring;
-  style['--diffshub-comment-add-fg'] = chrome.additionFg;
-  style['--diffshub-comment-del-fg'] = chrome.deletionFg;
-  style['--diffshub-diff-separator'] = chrome.separator;
+  style['--peekdiff-comment-add-fg'] = chrome.additionFg;
+  style['--peekdiff-comment-del-fg'] = chrome.deletionFg;
+  style['--peekdiff-diff-separator'] = chrome.separator;
   if (chrome.scrollbarThumb != null) {
-    style['--diffshub-scrollbar-thumb-bg'] = chrome.scrollbarThumb;
+    style['--peekdiff-scrollbar-thumb-bg'] = chrome.scrollbarThumb;
   }
   if (chrome.scrollbarTrack != null) {
-    style['--diffshub-scrollbar-track-bg'] = chrome.scrollbarTrack;
+    style['--peekdiff-scrollbar-track-bg'] = chrome.scrollbarTrack;
   }
   return style as CSSProperties;
 };

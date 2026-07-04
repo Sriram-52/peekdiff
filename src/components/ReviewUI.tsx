@@ -18,10 +18,10 @@ import {
   useState,
 } from 'react';
 
-import { DiffsHubHeader } from './DiffsHubHeader';
-import { DiffsHubSidebar } from './DiffsHubSidebar';
-import { DiffsHubStatusPanel } from './DiffsHubStatusPanel';
-import { DiffsHubViewer } from './DiffsHubViewer';
+import { PeekdiffHeader } from './PeekdiffHeader';
+import { PeekdiffSidebar } from './PeekdiffSidebar';
+import { PeekdiffStatusPanel } from './PeekdiffStatusPanel';
+import { PeekdiffViewer } from './PeekdiffViewer';
 import { FloatingReviewButton } from './FloatingReviewButton';
 import { useGitHubAuth } from './github-auth';
 import { ThemeSourceProvider } from './ThemeSourceProvider';
@@ -50,9 +50,9 @@ import { loadViewedFiles, saveViewedFiles } from '@/lib/viewedFiles';
 import type { DarkThemeName, LightThemeName } from '@/lib/themeNames';
 import type {
   CommentMetadata,
-  DiffsHubDeletedCommentEvent,
-  DiffsHubSavedCommentEntry,
-  DiffsHubSavedCommentEvent,
+  PeekdiffDeletedCommentEvent,
+  PeekdiffSavedCommentEntry,
+  PeekdiffSavedCommentEvent,
 } from '@/lib/types';
 import { upsertSavedCommentSidebarEntry } from '@/lib/upsertSavedCommentSidebarEntry';
 
@@ -453,7 +453,7 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
     applyCollapseModeToLoaded(next);
   }, [applyCollapseModeToLoaded, collapseMode]);
   const handleCommentSaved = useCallback(
-    (comment: DiffsHubSavedCommentEvent) => {
+    (comment: PeekdiffSavedCommentEvent) => {
       setCommentSections((prev) =>
         upsertSavedCommentSidebarEntry(prev, commentFileByItemId, comment)
       );
@@ -461,7 +461,7 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
     [commentFileByItemId, setCommentSections]
   );
   const handleCommentDeleted = useCallback(
-    (comment: DiffsHubDeletedCommentEvent) => {
+    (comment: PeekdiffDeletedCommentEvent) => {
       setCommentSections((prev) =>
         removeSavedCommentSidebarEntry(prev, comment)
       );
@@ -475,7 +475,7 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
     setFileTreeOverlayOpen(false);
   }, []);
   const handleSelectComment = useCallback(
-    (comment: DiffsHubSavedCommentEntry) => {
+    (comment: PeekdiffSavedCommentEntry) => {
       setFileTreeOverlayOpen(false);
       viewerRef.current?.setSelectedLines({
         id: comment.itemId,
@@ -512,7 +512,7 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
         error={reviewError}
         onSubmit={handleSubmitReview}
       />
-      <DiffsHubHeader
+      <PeekdiffHeader
         className="[grid-area:header]"
         collapseMode={collapseMode}
         colorMode={colorMode}
@@ -539,7 +539,7 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
       />
       {viewerAvailable && treeSource != null ? (
         <>
-          <DiffsHubSidebar
+          <PeekdiffSidebar
             className="[grid-area:viewer] md:[grid-area:tree]"
             commentSections={commentSections}
             diffStats={diffStats}
@@ -565,7 +565,7 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
             reviewSubmitting={reviewSubmitting}
             onReplyToThread={handleReplyToThread}
           />
-          <DiffsHubViewer
+          <PeekdiffViewer
             key={viewerKey}
             className="[grid-area:viewer]"
             authorLogin={githubUser?.login}
@@ -588,7 +588,7 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
           />
         </>
       ) : (
-        <DiffsHubStatusPanel
+        <PeekdiffStatusPanel
           errorMessage={errorMessage}
           needsAuth={needsAuth}
           onConnect={() => login()}
@@ -723,8 +723,8 @@ function ReviewGrid({ children }: ReviewGridProps) {
         onKeyDown={nudge}
         className={cn(
           'z-20 hidden w-1.5 translate-x-1/2 cursor-col-resize touch-none self-stretch justify-self-end bg-transparent transition-colors [grid-area:tree] md:block',
-          'hover:bg-[var(--diffshub-annotation-border,var(--color-border))] focus-visible:bg-[var(--diffshub-annotation-border,var(--color-border))] focus-visible:outline-none',
-          dragging && 'bg-[var(--diffshub-annotation-border,var(--color-border))]'
+          'hover:bg-[var(--peekdiff-annotation-border,var(--color-border))] focus-visible:bg-[var(--peekdiff-annotation-border,var(--color-border))] focus-visible:outline-none',
+          dragging && 'bg-[var(--peekdiff-annotation-border,var(--color-border))]'
         )}
       />
     </div>

@@ -28,9 +28,9 @@ import {
 } from 'react';
 
 import { CHROME_ICON_BUTTON_CLASS } from './chromeButtonStyles';
-import { DiffsHubCommentsList } from './DiffsHubCommentsList';
-import { DiffsHubDiffStats } from './DiffsHubDiffStats';
-import { DiffsHubFileTree } from './DiffsHubFileTree';
+import { PeekdiffCommentsList } from './PeekdiffCommentsList';
+import { PeekdiffDiffStats } from './PeekdiffDiffStats';
+import { PeekdiffFileTree } from './PeekdiffFileTree';
 import { useChromeThemeProps } from './useChromeThemeProps';
 import type { ThemeCycleControls } from './useThemeCycle';
 import { WorkerPoolStatus } from './WorkerPoolStatus';
@@ -46,15 +46,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/DropdownMenu';
 import { cn } from '@/lib/cn';
-import { filterDiffsHubFileTreeSource } from '@/lib/filterDiffsHubFileTreeSource';
-import { getDiffsHubFileTreeAvailableStatuses } from '@/lib/getDiffsHubFileTreeAvailableStatuses';
-import { diffshubChromeMapping } from '@/lib/theme/diffshubChromeMapping';
+import { filterPeekdiffFileTreeSource } from '@/lib/filterPeekdiffFileTreeSource';
+import { getPeekdiffFileTreeAvailableStatuses } from '@/lib/getPeekdiffFileTreeAvailableStatuses';
+import { peekdiffChromeMapping } from '@/lib/theme/peekdiffChromeMapping';
 import { getDropdownThemeStyle } from '@/lib/theme/dropdownChromeStyle';
 import type {
-  DiffsHubDiffStats as DiffsHubDiffStatsData,
-  DiffsHubFileTreeSource,
-  DiffsHubSavedCommentEntry,
-  DiffsHubSavedCommentItem,
+  PeekdiffDiffStats as PeekdiffDiffStatsData,
+  PeekdiffFileTreeSource,
+  PeekdiffSavedCommentEntry,
+  PeekdiffSavedCommentItem,
 } from '@/lib/types';
 
 type SidebarTab = 'files' | 'comments';
@@ -62,16 +62,16 @@ type SidebarStatusPanel = 'diffStats' | 'systemMonitor';
 
 const MOBILE_MEDIA_QUERY = '(max-width: 767px)';
 
-interface DiffsHubSidebarProps {
+interface PeekdiffSidebarProps {
   className?: string;
-  commentSections: readonly DiffsHubSavedCommentItem[];
-  diffStats: DiffsHubDiffStatsData | null;
+  commentSections: readonly PeekdiffSavedCommentItem[];
+  diffStats: PeekdiffDiffStatsData | null;
   mobileOverlayOpen?: boolean;
   onMobileClose(): void;
-  onSelectComment(comment: DiffsHubSavedCommentEntry): void;
+  onSelectComment(comment: PeekdiffSavedCommentEntry): void;
   onSelectItem(itemId: string): void;
   scrollRef: RefObject<HTMLDivElement | null>;
-  source: DiffsHubFileTreeSource;
+  source: PeekdiffFileTreeSource;
   streaming: boolean;
   themeCycle: ThemeCycleControls;
   // Review state (present only when connected to GitHub on a PR path). The
@@ -97,7 +97,7 @@ interface DiffsHubSidebarProps {
   onSelectionPathsChange?(paths: readonly string[]): void;
 }
 
-export const DiffsHubSidebar = memo(function DiffsHubSidebar({
+export const PeekdiffSidebar = memo(function PeekdiffSidebar({
   className,
   commentSections,
   diffStats,
@@ -122,7 +122,7 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
   onSetFolderViewed,
   onSetFileViewed,
   onSelectionPathsChange,
-}: DiffsHubSidebarProps) {
+}: PeekdiffSidebarProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('files');
   let totalCommentCount = 0;
   for (const section of commentSections) {
@@ -134,7 +134,7 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
   // instead of an opacity-derived fade of the file-tree's muted text.
   // Shared with the header so both chrome surfaces stay in sync.
   const { style: sidebarChromeStyle } = useChromeThemeProps(
-    diffshubChromeMapping
+    peekdiffChromeMapping
   );
   const sidebarStyle =
     Object.keys(sidebarChromeStyle).length > 0 ? sidebarChromeStyle : undefined;
@@ -155,11 +155,11 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
     ReadonlySet<GitStatus>
   >(() => new Set());
   const availableStatuses = useMemo(
-    () => getDiffsHubFileTreeAvailableStatuses(source),
+    () => getPeekdiffFileTreeAvailableStatuses(source),
     [source]
   );
   const filteredSource = useMemo(
-    () => filterDiffsHubFileTreeSource(source, selectedStatuses),
+    () => filterPeekdiffFileTreeSource(source, selectedStatuses),
     [source, selectedStatuses]
   );
   const handleModelReady = useCallback((model: FileTree | null) => {
@@ -336,7 +336,7 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
             hidden={activeTab !== 'files'}
             className="h-full min-h-0"
           >
-            <DiffsHubFileTree
+            <PeekdiffFileTree
               source={filteredSource}
               onModelReady={handleModelReady}
               onSelectItem={onSelectItem}
@@ -353,7 +353,7 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
             className="flex h-full min-h-0 flex-col"
           >
             <div className="min-h-0 flex-1">
-              <DiffsHubCommentsList
+              <PeekdiffCommentsList
                 commentSections={commentSections}
                 onSelectComment={onSelectComment}
                 onSelectItem={onSelectItem}
@@ -363,7 +363,7 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
             </div>
           </div>
         </div>
-        <DiffsHubDiffStats
+        <PeekdiffDiffStats
           expanded={activeStatusPanel === 'diffStats'}
           onToggle={() => toggleStatusPanel('diffStats')}
           stats={diffStats}
@@ -401,7 +401,7 @@ function SidebarWrapper({
         // Fall back to the neutral diffshub chrome background when no Shiki
         // theme bg is available yet (initial render before the resolver
         // returns).
-        themeStyle == null && 'bg-[var(--diffshub-sidebar-bg)]',
+        themeStyle == null && 'bg-[var(--peekdiff-sidebar-bg)]',
         mobileOverlayOpen
           ? 'pointer-events-auto translate-y-0 overflow-hidden rounded-t-xl shadow-[0_0_0_1px_var(--color-border-opaque),_0_16px_32px_rgb(0_0_0_/0.25)] md:h-full md:overflow-visible md:rounded-none md:border-0 md:shadow-none'
           : 'pointer-events-none translate-y-[calc(100%+1.5rem)] overflow-hidden rounded-xl md:pointer-events-auto md:h-full md:overflow-visible md:rounded-none pt-3 border-r border-[var(--color-border-opaque)]'
@@ -488,7 +488,7 @@ function FileTreeFilterButton({
         >
           <IconFilter className="size-4 md:size-3" />
           {isFiltered && (
-            <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full border-[1px] border-[var(--diffshub-sidebar-bg)] bg-blue-500 dark:bg-blue-400" />
+            <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full border-[1px] border-[var(--peekdiff-sidebar-bg)] bg-blue-500 dark:bg-blue-400" />
           )}
         </Button>
       </DropdownMenuTrigger>
@@ -586,7 +586,7 @@ function ViewedMenuButton({
         >
           <IconEye className="size-4 md:size-3" />
           {viewedCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 inline-flex h-3 min-w-3 items-center justify-center rounded-full border-[1px] border-[var(--diffshub-sidebar-bg)] bg-blue-500 px-0.5 text-[9px] leading-none font-medium tabular-nums text-white dark:bg-blue-400">
+            <span className="absolute -top-0.5 -right-0.5 inline-flex h-3 min-w-3 items-center justify-center rounded-full border-[1px] border-[var(--peekdiff-sidebar-bg)] bg-blue-500 px-0.5 text-[9px] leading-none font-medium tabular-nums text-white dark:bg-blue-400">
               {viewedCount}
             </span>
           )}

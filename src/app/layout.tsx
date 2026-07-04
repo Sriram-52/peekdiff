@@ -12,7 +12,7 @@ export const viewport: Viewport = {
   userScalable: false,
   maximumScale: 1,
   viewportFit: 'cover',
-  // The body uses --diffshub-sidebar-bg (#f7f7f7 / #101010) rather than the
+  // The body uses --peekdiff-sidebar-bg (#f7f7f7 / #101010) rather than the
   // plain neutral background, so it gets its own theme-color pair for the
   // browser chrome address bar.
   themeColor: [
