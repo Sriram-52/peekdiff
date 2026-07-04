@@ -32,6 +32,7 @@ import {
   themeController,
 } from '@/components/themeController';
 import { preloadAvatars } from '@/lib/annotation';
+import { cn } from '@/lib/cn';
 import {
   annotationSideToGithub,
   createReview,
@@ -623,10 +624,109 @@ interface ReviewGridProps {
   children: ReactNode;
 }
 
+const SIDEBAR_MIN_WIDTH = 220;
+const SIDEBAR_DEFAULT_WIDTH = 320;
+const SIDEBAR_WIDTH_STORAGE_KEY = 'peekdiff:sidebarWidth';
+
+function clampSidebarWidth(px: number): number {
+  const viewportMax =
+    typeof window === 'undefined'
+      ? 700
+      : Math.min(700, Math.round(window.innerWidth * 0.6));
+  const max = Math.max(SIDEBAR_MIN_WIDTH, viewportMax);
+  return Math.max(SIDEBAR_MIN_WIDTH, Math.min(px, max));
+}
+
+// The file tree occupies a fixed grid column; a draggable separator on its
+// right edge lets the reviewer widen it to read deep monorepo paths. Width is
+// persisted globally (not per-PR) so it sticks across PRs and reloads.
 function ReviewGrid({ children }: ReviewGridProps) {
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(SIDEBAR_DEFAULT_WIDTH);
+  const [dragging, setDragging] = useState(false);
+  const persistedOnceRef = useRef(false);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY);
+      if (raw != null && Number.isFinite(Number(raw))) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time restore of the persisted width on mount
+        setWidth(clampSidebarWidth(Number(raw)));
+      }
+    } catch {
+      // ignore storage failures; default width applies
+    }
+  }, []);
+
+  // Persist width changes (skipping the initial mount) so the chosen width
+  // sticks across PRs and reloads.
+  useEffect(() => {
+    if (!persistedOnceRef.current) {
+      persistedOnceRef.current = true;
+      return;
+    }
+    try {
+      window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(width));
+    } catch {
+      // ignore
+    }
+  }, [width]);
+
+  const startDrag = useCallback((event: React.PointerEvent) => {
+    event.preventDefault();
+    const grid = gridRef.current;
+    if (grid == null) {
+      return;
+    }
+    const left = grid.getBoundingClientRect().left;
+    setDragging(true);
+    const onMove = (moveEvent: PointerEvent) => {
+      setWidth(clampSidebarWidth(moveEvent.clientX - left));
+    };
+    const onUp = () => {
+      setDragging(false);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+    };
+    window.addEventListener('pointermove', onMove);
+    window.addEventListener('pointerup', onUp);
+  }, []);
+
+  const resetWidth = useCallback(() => {
+    setWidth(SIDEBAR_DEFAULT_WIDTH);
+  }, []);
+
+  const nudge = useCallback((event: React.KeyboardEvent) => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
+      return;
+    }
+    event.preventDefault();
+    setWidth((current) =>
+      clampSidebarWidth(current + (event.key === 'ArrowLeft' ? -16 : 16))
+    );
+  }, []);
+
   return (
-    <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] overflow-hidden overscroll-contain contain-strict [grid-template-areas:'header''viewer'] md:grid-cols-[320px_minmax(0,1fr)] md:[grid-template-areas:'header_header''tree_viewer']">
+    <div
+      ref={gridRef}
+      style={{ '--peekdiff-sidebar-w': `${width}px` } as React.CSSProperties}
+      className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] overflow-hidden overscroll-contain contain-strict [grid-template-areas:'header''viewer'] md:grid-cols-[var(--peekdiff-sidebar-w)_minmax(0,1fr)] md:[grid-template-areas:'header_header''tree_viewer']"
+    >
       {children}
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Resize file tree (drag, double-click to reset, arrow keys to nudge)"
+        tabIndex={0}
+        onPointerDown={startDrag}
+        onDoubleClick={resetWidth}
+        onKeyDown={nudge}
+        className={cn(
+          'z-20 hidden w-1.5 translate-x-1/2 cursor-col-resize touch-none self-stretch justify-self-end bg-transparent transition-colors [grid-area:tree] md:block',
+          'hover:bg-[var(--diffshub-annotation-border,var(--color-border))] focus-visible:bg-[var(--diffshub-annotation-border,var(--color-border))] focus-visible:outline-none',
+          dragging && 'bg-[var(--diffshub-annotation-border,var(--color-border))]'
+        )}
+      />
     </div>
   );
 }

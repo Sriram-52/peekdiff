@@ -1,9 +1,9 @@
 // Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
 // peekdiff authors: render comment/reply bodies as markdown; make threads
-// collapsible (chevron -> one-line summary); and, for threads loaded from a
-// GitHub PR review (key `gh-*`), drop the delete/X (you can't delete other
-// people's comments) — the remove affordance stays only for local drafts
-// (key `draft-*`).
+// collapsible (chevron -> one-line summary); drop the delete/X on threads
+// loaded from a GitHub PR review (key `gh-*`, keep it only for local `draft-*`);
+// and restyle the card — compact density, a left accent stripe tying the thread
+// to its line, and replies nested under a left rule.
 'use client';
 
 import type { CodeViewLineSelection, DiffLineAnnotation } from '@pierre/diffs';
@@ -67,7 +67,9 @@ export const ExampleAnnotation = memo(function ExampleAnnotation({
       tabIndex={0}
       className={cn(
         annotationCardBase,
-        'group relative cursor-pointer items-start hover:border-[var(--diffshub-annotation-hover-border,var(--diffshub-annotation-border,var(--color-border)))]'
+        // Column layout; a 2px left accent stripe (derived from the fg token so
+        // it reads on any theme) ties the thread to its code line.
+        'group relative flex-col gap-0 border-l-2 border-l-[color-mix(in_srgb,var(--diffshub-annotation-fg,var(--color-card-foreground))_32%,transparent)] cursor-pointer items-stretch py-2.5 hover:border-[var(--diffshub-annotation-hover-border,var(--diffshub-annotation-border,var(--color-border)))]'
       )}
       onClick={() => onToggleSelection(selection)}
       onKeyDown={(event) => {
@@ -78,7 +80,6 @@ export const ExampleAnnotation = memo(function ExampleAnnotation({
         onToggleSelection(selection);
       }}
     >
-      <CommentAuthorAvatar seed={author} avatarUrl={authorAvatarUrl} />
       {!isLoaded && (
         <Button
           variant="default"
@@ -93,57 +94,67 @@ export const ExampleAnnotation = memo(function ExampleAnnotation({
           <IconX size={12} />
         </Button>
       )}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="mt-1 flex items-center gap-1">
-          <button
-            type="button"
-            aria-label={collapsed ? 'Expand thread' : 'Collapse thread'}
-            aria-expanded={!collapsed}
-            className="text-muted-foreground hover:text-foreground -ml-0.5 flex cursor-pointer items-center rounded p-0.5"
-            onClick={(event) => {
-              event.stopPropagation();
-              setCollapsed((value) => !value);
-            }}
-          >
-            <Chevron open={!collapsed} />
-          </button>
-          <strong className="text-[14px]">{author}</strong>
-          {collapsed && replies.length > 0 && (
-            <span className="text-muted-foreground text-[12px]">
-              · {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
-            </span>
-          )}
-        </div>
-
-        {collapsed ? (
-          <p className="text-muted-foreground m-0 ml-[18px] truncate text-[13px]">
-            {firstLine}
-          </p>
-        ) : (
-          <>
-            <CommentMarkdown text={message} className="text-[14px]" />
-            {replies.length > 0 && (
-              <div className="mt-2 flex flex-col gap-2 border-t border-[var(--diffshub-annotation-border,var(--color-border))] pt-2">
-                {replies.map((reply, index) => (
-                  <div key={index} className="flex gap-2">
-                    <CommentAuthorAvatar
-                      seed={reply.login}
-                      avatarUrl={reply.avatarUrl}
-                      className="size-5 text-[10px]"
-                    />
-                    <div className="flex min-w-0 flex-col">
-                      <strong className="block text-[13px]">
-                        {reply.login}
-                      </strong>
-                      <CommentMarkdown text={reply.body} className="text-[13px]" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
+      <div className="flex min-w-0 items-center gap-2">
+        <button
+          type="button"
+          aria-label={collapsed ? 'Expand thread' : 'Collapse thread'}
+          aria-expanded={!collapsed}
+          className="text-muted-foreground hover:text-foreground -ml-1 flex shrink-0 cursor-pointer items-center rounded p-0.5"
+          onClick={(event) => {
+            event.stopPropagation();
+            setCollapsed((value) => !value);
+          }}
+        >
+          <Chevron open={!collapsed} />
+        </button>
+        <CommentAuthorAvatar
+          seed={author}
+          avatarUrl={authorAvatarUrl}
+          className="size-[22px] shrink-0"
+        />
+        <strong className="truncate text-[13px] leading-none font-semibold">
+          {author}
+        </strong>
+        {collapsed && replies.length > 0 && (
+          <span className="text-muted-foreground shrink-0 text-[12px]">
+            · {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+          </span>
         )}
       </div>
+
+      {collapsed ? (
+        <p className="text-muted-foreground m-0 mt-1 ml-[30px] truncate text-[13px]">
+          {firstLine}
+        </p>
+      ) : (
+        <>
+          <div className="mt-1.5 ml-[30px]">
+            <CommentMarkdown text={message} className="text-[13px]" />
+          </div>
+          {replies.length > 0 && (
+            <div className="mt-2.5 ml-[10px] flex flex-col gap-3 border-l border-[var(--diffshub-annotation-border,var(--color-border))] pl-3">
+              {replies.map((reply, index) => (
+                <div key={index} className="flex min-w-0 gap-2">
+                  <CommentAuthorAvatar
+                    seed={reply.login}
+                    avatarUrl={reply.avatarUrl}
+                    className="size-[18px] shrink-0 text-[10px]"
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <strong className="block text-[12.5px] leading-tight font-semibold">
+                      {reply.login}
+                    </strong>
+                    <CommentMarkdown
+                      text={reply.body}
+                      className="mt-0.5 text-[12.5px]"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 });
