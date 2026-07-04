@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Open in peekdiff",
+  "version": "1.0.0",
+  "description": "Open the current GitHub PR, commit, or diff in peekdiff.codebyram.dev with one keypress.",
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "host_permissions": ["https://github.com/*"],
+  "action": {
+    "default_title": "Open in peekdiff (⌘⇧Y)",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "commands": {
+    "open-in-peekdiff": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y",
+        "mac": "Command+Shift+Y"
+      },
+      "description": "Open the current GitHub page in peekdiff"
+    }
+  }
+}
