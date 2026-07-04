@@ -430,3 +430,80 @@
   @apply md:p-0 md:opacity-100 md:shadow-none md:transition-none;
   @apply md:sticky md:top-22 md:max-h-[calc(100vh-112px)];
 }
+
+/* Rendered markdown inside comment cards (see CommentMarkdown). Scoped so we
+   style react-markdown output without overriding its element components. */
+.cmt-md {
+  word-break: break-word;
+}
+.cmt-md > :first-child {
+  margin-top: 0;
+}
+.cmt-md > :last-child {
+  margin-bottom: 0;
+}
+.cmt-md p {
+  margin: 0 0 0.5em;
+}
+.cmt-md a {
+  color: light-dark(#1868c9, #6cb6ff);
+  text-decoration: underline;
+}
+.cmt-md code {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.9em;
+  padding: 0.1em 0.3em;
+  border-radius: 4px;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.cmt-md pre {
+  margin: 0 0 0.5em;
+  padding: 0.6em 0.8em;
+  border-radius: 6px;
+  overflow-x: auto;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+.cmt-md pre code {
+  padding: 0;
+  background: none;
+  font-size: 0.85em;
+}
+.cmt-md ul,
+.cmt-md ol {
+  margin: 0 0 0.5em;
+  padding-left: 1.3em;
+}
+.cmt-md li {
+  margin: 0.15em 0;
+}
+.cmt-md blockquote {
+  margin: 0 0 0.5em;
+  padding-left: 0.8em;
+  border-left: 3px solid color-mix(in srgb, currentColor 25%, transparent);
+  color: color-mix(in srgb, currentColor 75%, transparent);
+}
+.cmt-md h1,
+.cmt-md h2,
+.cmt-md h3,
+.cmt-md h4 {
+  margin: 0.4em 0 0.3em;
+  font-size: 1em;
+  font-weight: 600;
+}
+.cmt-md table {
+  border-collapse: collapse;
+  margin: 0 0 0.5em;
+  display: block;
+  overflow-x: auto;
+}
+.cmt-md th,
+.cmt-md td {
+  border: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  padding: 0.2em 0.5em;
+}
+.cmt-md img {
+  max-width: 100%;
+}
+.cmt-md input[type='checkbox'] {
+  margin-right: 0.4em;
+}

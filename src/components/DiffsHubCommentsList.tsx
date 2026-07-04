@@ -9,6 +9,7 @@ import { IconConvoFill, IconPlus } from '@pierre/icons';
 import { memo, type MouseEvent, useState } from 'react';
 
 import { CommentAuthorAvatar } from './CommentAuthorAvatar';
+import { CommentMarkdown } from './CommentMarkdown';
 import { Button } from '@/components/Button';
 import { cn } from '@/lib/cn';
 import type {
@@ -184,9 +185,10 @@ export const DiffsHubCommentsList = memo(function DiffsHubCommentsList({
                           </span>
                         )}
                       </div>
-                      <p className="text-foreground w-full break-words whitespace-pre-wrap">
-                        {comment.message}
-                      </p>
+                      <CommentMarkdown
+                        text={comment.message}
+                        className="text-foreground w-full"
+                      />
                     </div>
                   </button>
                   {comment.githubReplies != null &&
@@ -206,9 +208,10 @@ export const DiffsHubCommentsList = memo(function DiffsHubCommentsList({
                               <span className="text-muted-foreground">
                                 {reply.login}
                               </span>
-                              <p className="text-foreground w-full break-words whitespace-pre-wrap">
-                                {reply.body}
-                              </p>
+                              <CommentMarkdown
+                                text={reply.body}
+                                className="text-foreground w-full"
+                              />
                             </div>
                           </div>
                         ))}
