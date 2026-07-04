@@ -22,7 +22,6 @@ import { PeekdiffHeader } from './PeekdiffHeader';
 import { PeekdiffSidebar } from './PeekdiffSidebar';
 import { PeekdiffStatusPanel } from './PeekdiffStatusPanel';
 import { PeekdiffViewer } from './PeekdiffViewer';
-import { FloatingReviewButton } from './FloatingReviewButton';
 import { useGitHubAuth } from './github-auth';
 import { ThemeSourceProvider } from './ThemeSourceProvider';
 import { usePatchLoader } from './usePatchLoader';
@@ -651,15 +650,13 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
 
   return (
     <ReviewGrid>
-      <FloatingReviewButton
-        canReview={canReview}
-        pendingCount={pendingComments.length}
-        submitting={reviewSubmitting}
-        error={reviewError}
-        onSubmit={handleSubmitReview}
-      />
       <PeekdiffHeader
         className="[grid-area:header]"
+        canReview={canReview}
+        pendingReviewCount={pendingComments.length}
+        reviewSubmitting={reviewSubmitting}
+        reviewError={reviewError}
+        onSubmitReview={handleSubmitReview}
         collapseMode={collapseMode}
         colorMode={colorMode}
         darkThemeName={darkThemeName}

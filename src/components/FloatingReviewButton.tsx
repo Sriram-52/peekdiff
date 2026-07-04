@@ -21,12 +21,13 @@ const EVENT_OPTIONS: { value: ReviewEvent; label: string }[] = [
   { value: 'REQUEST_CHANGES', label: 'Request changes' },
 ];
 
-// A persistent, hard-to-miss review-submit control. It floats at the top-right
-// whenever the visitor can review this PR — even with zero pending comments, so
-// a summary-only Approve / Request changes is possible without first drafting an
+// The review-submit control that lives in the header toolbar. Shows whenever
+// the visitor can review this PR — even with zero pending comments, so a
+// summary-only Approve / Request changes is possible without first drafting an
 // inline note. The label reflects the pending count when there is one.
-// Clicking opens a popover with an optional summary + Comment / Approve /
-// Request changes + submit. Dismissible via click-outside or Escape.
+// Clicking opens a popover (anchored below the button) with an optional summary
+// + Comment / Approve / Request changes + submit. Dismissible via click-outside
+// or Escape.
 export function FloatingReviewButton({
   canReview,
   pendingCount,
@@ -79,16 +80,14 @@ export function FloatingReviewButton({
     (pendingCount > 0 || event !== 'COMMENT' || summary.trim().length > 0);
 
   return (
-    <div
-      ref={containerRef}
-      className="fixed top-14 right-4 z-50 flex flex-col items-end"
-    >
+    <div ref={containerRef} className="relative flex flex-col items-end">
       <Button
         type="button"
+        size="sm"
         aria-expanded={open}
         aria-controls={open ? panelId : undefined}
         onClick={() => setOpen((v) => !v)}
-        className="rounded-full bg-blue-500 shadow-lg hover:bg-blue-600"
+        className="bg-blue-500 text-white hover:bg-blue-600"
       >
         {pendingCount > 0 ? `Finish review (${pendingCount})` : 'Review changes'}
       </Button>
@@ -97,7 +96,7 @@ export function FloatingReviewButton({
           id={panelId}
           role="dialog"
           aria-label="Submit review"
-          className="mt-2 w-80 rounded-lg border border-[var(--color-border-opaque)] bg-[var(--color-popover,var(--color-card))] p-3 text-sm shadow-xl"
+          className="absolute top-full right-0 z-50 mt-2 w-80 rounded-lg border border-[var(--color-border-opaque)] bg-[var(--color-popover,var(--color-card))] p-3 text-sm shadow-xl"
         >
           <div className="text-muted-foreground mb-1.5">
             {pendingCount > 0

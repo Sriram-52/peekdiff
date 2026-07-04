@@ -30,8 +30,10 @@ import {
 } from 'react';
 
 import { CHROME_ICON_BUTTON_CLASS } from './chromeButtonStyles';
+import { FloatingReviewButton } from './FloatingReviewButton';
 import { PeekdiffLogo } from './PeekdiffLogo';
 import { DiffUrlForm } from './DiffUrlForm';
+import type { ReviewEvent } from '@/lib/github/reviews';
 import { useChromeThemeProps } from './useChromeThemeProps';
 import { Button } from '@/components/Button';
 import { ButtonGroup, ButtonGroupItem } from '@/components/ButtonGroup';
@@ -66,6 +68,12 @@ interface HeaderProps {
   lightThemeName: LightThemeName;
   lineNumbers: boolean;
   overflow: 'wrap' | 'scroll';
+  // Review-submit control, shown in the toolbar when the visitor can review.
+  canReview: boolean;
+  pendingReviewCount: number;
+  reviewSubmitting: boolean;
+  reviewError: string | null;
+  onSubmitReview(event: ReviewEvent, summary: string): void;
   onToggleCollapseMode(): void;
   onToggleFileTreeOverlay(): void;
   setColorMode(mode: ColorMode): void;
@@ -92,6 +100,11 @@ export const PeekdiffHeader = memo(function PeekdiffHeader({
   lightThemeName,
   lineNumbers,
   overflow,
+  canReview,
+  pendingReviewCount,
+  reviewSubmitting,
+  reviewError,
+  onSubmitReview,
   onToggleCollapseMode,
   onToggleFileTreeOverlay,
   setColorMode,
@@ -158,6 +171,13 @@ export const PeekdiffHeader = memo(function PeekdiffHeader({
           <IconFileTreeFill className="size-4 md:size-3" />
         </Button>
         <div className="flex items-center gap-2">
+          <FloatingReviewButton
+            canReview={canReview}
+            pendingCount={pendingReviewCount}
+            submitting={reviewSubmitting}
+            error={reviewError}
+            onSubmit={onSubmitReview}
+          />
           {showExternalLink && (
             <>
               <Button
