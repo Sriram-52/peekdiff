@@ -258,6 +258,41 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
     [itemIdToPath]
   );
 
+  // Bulk "viewed" actions. Every file path in the diff is a key of
+  // pathToItemId; marking all / clearing is a single set replacement so the
+  // persistence + collapse + tree-repaint effects each run once, not per file.
+  const allFilePaths = useMemo(
+    () => (treeSource != null ? [...treeSource.pathToItemId.keys()] : []),
+    [treeSource]
+  );
+  const viewedFileCount = useMemo(
+    () => allFilePaths.reduce((n, p) => (viewedPaths.has(p) ? n + 1 : n), 0),
+    [allFilePaths, viewedPaths]
+  );
+  const handleMarkAllViewed = useCallback(() => {
+    setViewedPaths(new Set(allFilePaths));
+  }, [allFilePaths]);
+  const handleClearAllViewed = useCallback(() => {
+    setViewedPaths(new Set());
+  }, []);
+
+  // Multi-select in the tree (cmd/shift-click) → "mark N selected as viewed".
+  const [selectedTreePaths, setSelectedTreePaths] = useState<readonly string[]>(
+    []
+  );
+  const handleSelectionPathsChange = useCallback((paths: readonly string[]) => {
+    setSelectedTreePaths(paths);
+  }, []);
+  const handleMarkSelectedViewed = useCallback(() => {
+    setViewedPaths((prev) => {
+      const next = new Set(prev);
+      for (const p of selectedTreePaths) {
+        next.add(p);
+      }
+      return next;
+    });
+  }, [selectedTreePaths]);
+
   // Review posting is only possible when connected to GitHub on a PR path.
   const canReview = githubToken != null && parsePullRef(path) != null;
   // Pending comments = drafted locally this session, not yet a GitHub thread
@@ -475,7 +510,14 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
             streaming={loadState === 'streaming'}
             themeCycle={themeCycle}
             onSelectItem={handleSelectTreeItem}
+            onSelectionPathsChange={handleSelectionPathsChange}
             viewedPaths={viewedPaths}
+            viewedFileCount={viewedFileCount}
+            fileCount={allFilePaths.length}
+            selectedFileCount={selectedTreePaths.length}
+            onMarkAllViewed={handleMarkAllViewed}
+            onClearAllViewed={handleClearAllViewed}
+            onMarkSelectedViewed={handleMarkSelectedViewed}
             canReview={canReview}
             reviewSubmitting={reviewSubmitting}
             onReplyToThread={handleReplyToThread}

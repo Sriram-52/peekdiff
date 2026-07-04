@@ -48,6 +48,11 @@ interface DiffsHubFileTreeProps {
   // search open/close without owning the model creation.
   onModelReady(model: FileTreeModel | null): void;
   onSelectItem(itemId: string): void;
+  // Reports the full set of selected tree paths on every selection change
+  // (multi-select via cmd/shift-click), so a parent can offer a "mark selected
+  // as viewed" bulk action. Single-file navigation still flows through
+  // onSelectItem.
+  onSelectionPathsChange?(paths: readonly string[]): void;
   source: DiffsHubFileTreeSource;
   // Tree paths marked "viewed"; rendered as a checkmark decoration. Read via a
   // ref because useFileTree captures its options once.
@@ -57,6 +62,7 @@ interface DiffsHubFileTreeProps {
 export const DiffsHubFileTree = memo(function DiffsHubFileTree({
   onModelReady,
   onSelectItem,
+  onSelectionPathsChange,
   source,
   viewedPaths,
 }: DiffsHubFileTreeProps) {
@@ -75,6 +81,7 @@ export const DiffsHubFileTree = memo(function DiffsHubFileTree({
   initialPathsRef.current ??= source.paths.slice(0, source.pathCount);
   const onSelectionChange = useStableCallback(
     (selectedPaths: readonly FileTreePublicId[]) => {
+      onSelectionPathsChange?.(selectedPaths);
       if (selectedPaths.length !== 1 || onSelectItem == null) {
         return;
       }

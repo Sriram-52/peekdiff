@@ -4,7 +4,9 @@
 'use client';
 
 import {
+  IconCheckCircle,
   IconComment,
+  IconEye,
   IconFileTree,
   IconFilter,
   IconSearch,
@@ -80,6 +82,15 @@ interface DiffsHubSidebarProps {
   onReplyToThread?(rootCommentId: number, body: string): void;
   // Tree paths the reviewer has marked "viewed" (shown as a checkmark).
   viewedPaths?: ReadonlySet<string>;
+  // Bulk "viewed" controls + counts for the files-tab menu.
+  viewedFileCount?: number;
+  fileCount?: number;
+  selectedFileCount?: number;
+  onMarkAllViewed?(): void;
+  onClearAllViewed?(): void;
+  onMarkSelectedViewed?(): void;
+  // Reports the full multi-selection so "mark selected as viewed" can act on it.
+  onSelectionPathsChange?(paths: readonly string[]): void;
 }
 
 export const DiffsHubSidebar = memo(function DiffsHubSidebar({
@@ -98,6 +109,13 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
   reviewSubmitting = false,
   onReplyToThread,
   viewedPaths,
+  viewedFileCount = 0,
+  fileCount = 0,
+  selectedFileCount = 0,
+  onMarkAllViewed,
+  onClearAllViewed,
+  onMarkSelectedViewed,
+  onSelectionPathsChange,
 }: DiffsHubSidebarProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('files');
   let totalCommentCount = 0;
@@ -282,6 +300,17 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
               dropdownThemeStyle={dropdownThemeStyle}
             />
           )}
+          {activeTab === 'files' && onMarkAllViewed != null && (
+            <ViewedMenuButton
+              viewedCount={viewedFileCount}
+              fileCount={fileCount}
+              selectedCount={selectedFileCount}
+              onMarkAll={onMarkAllViewed}
+              onClearAll={onClearAllViewed}
+              onMarkSelected={onMarkSelectedViewed}
+              dropdownThemeStyle={dropdownThemeStyle}
+            />
+          )}
           {onMobileClose != null && (
             <Button
               variant="ghost"
@@ -305,6 +334,7 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
               source={filteredSource}
               onModelReady={handleModelReady}
               onSelectItem={onSelectItem}
+              onSelectionPathsChange={onSelectionPathsChange}
               viewedPaths={viewedPaths}
             />
           </div>
@@ -508,6 +538,81 @@ function FileTreeFilterButton({
         >
           <IconXSquircle className="mr-2 opacity-50" />
           Clear filter
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+// Bulk "viewed" menu for the files tab: mark all / clear all, plus "mark N
+// selected as viewed" when the reviewer multi-selects files in the tree
+// (handy for marking generated files seen in one go). The eye icon carries a
+// count badge of viewed files.
+function ViewedMenuButton({
+  viewedCount,
+  fileCount,
+  selectedCount,
+  onMarkAll,
+  onClearAll,
+  onMarkSelected,
+  dropdownThemeStyle,
+}: {
+  viewedCount: number;
+  fileCount: number;
+  selectedCount: number;
+  onMarkAll(): void;
+  onClearAll?(): void;
+  onMarkSelected?(): void;
+  dropdownThemeStyle?: CSSProperties;
+}) {
+  const allViewed = fileCount > 0 && viewedCount >= fileCount;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-only"
+          aria-label="Mark files as viewed"
+          className={cn(CHROME_ICON_BUTTON_CLASS, 'relative')}
+        >
+          <IconEye className="size-4 md:size-3" />
+          {viewedCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 inline-flex h-3 min-w-3 items-center justify-center rounded-full border-[1px] border-[var(--diffshub-sidebar-bg)] bg-blue-500 px-0.5 text-[9px] leading-none font-medium tabular-nums text-white dark:bg-blue-400">
+              {viewedCount}
+            </span>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="p-2" style={dropdownThemeStyle}>
+        <DropdownMenuLabel className="flex flex-col px-2 font-normal">
+          Viewed files
+          <small className="text-muted-foreground text-xs">
+            {viewedCount} of {fileCount} viewed
+          </small>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator className="mx-2" />
+        {selectedCount > 1 && onMarkSelected != null && (
+          <DropdownMenuItem className="px-2" onSelect={onMarkSelected}>
+            <IconEye className="mr-2 opacity-50" />
+            Mark {selectedCount} selected as viewed
+          </DropdownMenuItem>
+        )}
+        <DropdownMenuItem
+          className="px-2"
+          disabled={allViewed}
+          onSelect={onMarkAll}
+        >
+          <IconCheckCircle className="mr-2 opacity-50" />
+          Mark all as viewed
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="px-2"
+          disabled={viewedCount === 0}
+          onSelect={() => onClearAll?.()}
+        >
+          <IconXSquircle className="mr-2 opacity-50" />
+          Clear all viewed
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
