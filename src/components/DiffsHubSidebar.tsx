@@ -89,6 +89,10 @@ interface DiffsHubSidebarProps {
   onMarkAllViewed?(): void;
   onClearAllViewed?(): void;
   onMarkSelectedViewed?(): void;
+  // Mark/unmark all files under a directory, or a single file, from the tree's
+  // right-click context menu.
+  onSetFolderViewed?(dirPath: string, viewed: boolean): void;
+  onSetFileViewed?(filePath: string, viewed: boolean): void;
   // Reports the full multi-selection so "mark selected as viewed" can act on it.
   onSelectionPathsChange?(paths: readonly string[]): void;
 }
@@ -115,6 +119,8 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
   onMarkAllViewed,
   onClearAllViewed,
   onMarkSelectedViewed,
+  onSetFolderViewed,
+  onSetFileViewed,
   onSelectionPathsChange,
 }: DiffsHubSidebarProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('files');
@@ -336,6 +342,8 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
               onSelectItem={onSelectItem}
               onSelectionPathsChange={onSelectionPathsChange}
               viewedPaths={viewedPaths}
+              onSetFolderViewed={onSetFolderViewed}
+              onSetFileViewed={onSetFileViewed}
             />
           </div>
           <div

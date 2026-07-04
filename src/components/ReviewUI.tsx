@@ -293,6 +293,46 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
     });
   }, [selectedTreePaths]);
 
+  // Mark/unmark every file under a directory (path-prefix match) in one batched
+  // set replacement — used by the tree's folder context menu, handy for
+  // dismissing whole generated directories at once.
+  const handleSetFolderViewed = useCallback(
+    (dirPath: string, viewed: boolean) => {
+      const prefix = dirPath.endsWith('/') ? dirPath : `${dirPath}/`;
+      setViewedPaths((prev) => {
+        const next = new Set(prev);
+        for (const p of allFilePaths) {
+          if (p === dirPath || p.startsWith(prefix)) {
+            if (viewed) {
+              next.add(p);
+            } else {
+              next.delete(p);
+            }
+          }
+        }
+        return next;
+      });
+    },
+    [allFilePaths]
+  );
+  const handleSetFileViewed = useCallback(
+    (filePath: string, viewed: boolean) => {
+      setViewedPaths((prev) => {
+        if (prev.has(filePath) === viewed) {
+          return prev;
+        }
+        const next = new Set(prev);
+        if (viewed) {
+          next.add(filePath);
+        } else {
+          next.delete(filePath);
+        }
+        return next;
+      });
+    },
+    []
+  );
+
   // Review posting is only possible when connected to GitHub on a PR path.
   const canReview = githubToken != null && parsePullRef(path) != null;
   // Pending comments = drafted locally this session, not yet a GitHub thread
@@ -518,6 +558,8 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
             onMarkAllViewed={handleMarkAllViewed}
             onClearAllViewed={handleClearAllViewed}
             onMarkSelectedViewed={handleMarkSelectedViewed}
+            onSetFolderViewed={handleSetFolderViewed}
+            onSetFileViewed={handleSetFileViewed}
             canReview={canReview}
             reviewSubmitting={reviewSubmitting}
             onReplyToThread={handleReplyToThread}

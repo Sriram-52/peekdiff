@@ -3,18 +3,28 @@
 import { useStableCallback } from '@pierre/diffs/react';
 import type {
   FileTreeBatchOperation,
+  ContextMenuItem as FileTreeContextMenuItem,
+  ContextMenuOpenContext as FileTreeContextMenuOpenContext,
   FileTree as FileTreeModel,
   FileTreeOptions,
 } from '@pierre/trees';
 import { useFileTree } from '@pierre/trees/react';
-import { type CSSProperties, memo, useEffect, useRef, useState } from 'react';
+import {
+  type CSSProperties,
+  memo,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 // Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
 // peekdiff authors: inlined the FileTreePublicId type alias (upstream imported
 // it from a monorepo-relative path that does not exist outside the monorepo;
 // the published @pierre/trees does not re-export it from its entry, and it is
-// simply `type FileTreePublicId = string`); and added a "viewed" checkmark
-// row decoration driven by the reviewer's per-file viewed set.
+// simply `type FileTreePublicId = string`); added a "viewed" checkmark row
+// decoration driven by the reviewer's per-file viewed set; and a right-click
+// context menu to mark all files under a folder (or a single file) as viewed.
 type FileTreePublicId = string;
 import { ThemedFileTree } from './ThemedFileTree';
 import {
@@ -57,6 +67,10 @@ interface DiffsHubFileTreeProps {
   // Tree paths marked "viewed"; rendered as a checkmark decoration. Read via a
   // ref because useFileTree captures its options once.
   viewedPaths?: ReadonlySet<string>;
+  // Right-click context-menu actions: mark/unmark every file under a directory,
+  // or a single file. When neither is provided, no context menu is shown.
+  onSetFolderViewed?(dirPath: string, viewed: boolean): void;
+  onSetFileViewed?(filePath: string, viewed: boolean): void;
 }
 
 export const DiffsHubFileTree = memo(function DiffsHubFileTree({
@@ -65,6 +79,8 @@ export const DiffsHubFileTree = memo(function DiffsHubFileTree({
   onSelectionPathsChange,
   source,
   viewedPaths,
+  onSetFolderViewed,
+  onSetFileViewed,
 }: DiffsHubFileTreeProps) {
   const sourceRef = useRef(source);
   const previousSourceRef = useRef(source);
@@ -179,12 +195,97 @@ export const DiffsHubFileTree = memo(function DiffsHubFileTree({
     return () => onModelReady(null);
   }, [model, onModelReady]);
 
+  // Right-click menu: mark a whole folder (or a single file) viewed/unviewed.
+  // Only enabled when the parent wires the viewed handlers.
+  const hasViewedActions = onSetFolderViewed != null || onSetFileViewed != null;
+  const renderContextMenu = !hasViewedActions
+    ? undefined
+    : (
+        item: FileTreeContextMenuItem,
+        context: FileTreeContextMenuOpenContext
+      ): ReactNode => {
+        if (item.kind === 'directory') {
+          if (onSetFolderViewed == null) {
+            return null;
+          }
+          return (
+            <TreeViewedMenu>
+              <TreeViewedMenuItem
+                onSelect={() => {
+                  onSetFolderViewed(item.path, true);
+                  context.close();
+                }}
+              >
+                Mark all in folder as viewed
+              </TreeViewedMenuItem>
+              <TreeViewedMenuItem
+                onSelect={() => {
+                  onSetFolderViewed(item.path, false);
+                  context.close();
+                }}
+              >
+                Unmark all in folder
+              </TreeViewedMenuItem>
+            </TreeViewedMenu>
+          );
+        }
+        if (onSetFileViewed == null) {
+          return null;
+        }
+        const isViewed = viewedPathsRef.current?.has(item.path) ?? false;
+        return (
+          <TreeViewedMenu>
+            <TreeViewedMenuItem
+              onSelect={() => {
+                onSetFileViewed(item.path, !isViewed);
+                context.close();
+              }}
+            >
+              {isViewed ? 'Unmark as viewed' : 'Mark as viewed'}
+            </TreeViewedMenuItem>
+          </TreeViewedMenu>
+        );
+      };
+
   return (
     <ThemedFileTree
       className="h-full min-h-0 overflow-auto overscroll-contain md:ml-3"
       model={model}
       reconcileForegroundFromChrome
+      renderContextMenu={renderContextMenu}
       style={DENSITY_OVERRIDE_STYLES}
     />
   );
 });
+
+// Slotted into the tree's context-menu surface (light DOM, so app Tailwind
+// tokens apply). Mirrors the app's dropdown styling.
+function TreeViewedMenu({ children }: { children: ReactNode }) {
+  return (
+    <div
+      role="menu"
+      className="bg-popover text-popover-foreground min-w-[200px] rounded-md border p-1 shadow-md"
+    >
+      {children}
+    </div>
+  );
+}
+
+function TreeViewedMenuItem({
+  children,
+  onSelect,
+}: {
+  children: ReactNode;
+  onSelect(): void;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onSelect}
+      className="hover:bg-accent hover:text-accent-foreground flex w-full cursor-default items-center rounded-sm px-2 py-1.5 text-left text-sm outline-none"
+    >
+      {children}
+    </button>
+  );
+}
