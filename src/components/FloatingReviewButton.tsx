@@ -22,8 +22,9 @@ const EVENT_OPTIONS: { value: ReviewEvent; label: string }[] = [
 ];
 
 // A persistent, hard-to-miss review-submit control. It floats at the top-right
-// and appears the moment there is at least one pending (not-yet-posted) inline
-// comment, so finishing a review no longer means hunting through the sidebar.
+// whenever the visitor can review this PR — even with zero pending comments, so
+// a summary-only Approve / Request changes is possible without first drafting an
+// inline note. The label reflects the pending count when there is one.
 // Clicking opens a popover with an optional summary + Comment / Approve /
 // Request changes + submit. Dismissible via click-outside or Escape.
 export function FloatingReviewButton({
@@ -67,7 +68,7 @@ export function FloatingReviewButton({
     };
   }, [open]);
 
-  if (!canReview || pendingCount === 0) {
+  if (!canReview) {
     return null;
   }
 
@@ -89,7 +90,7 @@ export function FloatingReviewButton({
         onClick={() => setOpen((v) => !v)}
         className="rounded-full bg-blue-500 shadow-lg hover:bg-blue-600"
       >
-        Finish review ({pendingCount})
+        {pendingCount > 0 ? `Finish review (${pendingCount})` : 'Review changes'}
       </Button>
       {open && (
         <div
@@ -99,7 +100,9 @@ export function FloatingReviewButton({
           className="mt-2 w-80 rounded-lg border border-[var(--color-border-opaque)] bg-[var(--color-popover,var(--color-card))] p-3 text-sm shadow-xl"
         >
           <div className="text-muted-foreground mb-1.5">
-            {pendingCount} pending comment{pendingCount === 1 ? '' : 's'}
+            {pendingCount > 0
+              ? `${pendingCount} pending comment${pendingCount === 1 ? '' : 's'}`
+              : 'No pending comments'}
           </div>
           <textarea
             ref={summaryRef}
