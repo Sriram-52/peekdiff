@@ -226,6 +226,7 @@ export function usePatchLoader({
               range: entry.range,
               authorAvatarUrl: entry.authorAvatarUrl,
               githubReplies: entry.githubReplies,
+              githubCommentId: entry.githubCommentId,
             },
           };
           const list = byItem.get(entry.itemId) ?? [];

@@ -95,6 +95,10 @@ interface PeekdiffViewerProps {
   onToggleViewed(itemId: string): void;
   onLineLinkChange(selection: CodeViewLineSelection | null): void;
   onViewerReady(): void;
+  // Edit / delete a posted GitHub review comment (the current user's own).
+  // Absent when not authed on a PR; ExampleAnnotation hides the controls then.
+  onEditGithubComment?(commentId: number, body: string): Promise<void>;
+  onDeleteGithubComment?(commentId: number): Promise<void>;
 }
 
 export const PeekdiffViewer = memo(function PeekdiffViewer({
@@ -116,6 +120,8 @@ export const PeekdiffViewer = memo(function PeekdiffViewer({
   onToggleViewed,
   onLineLinkChange,
   onViewerReady,
+  onEditGithubComment,
+  onDeleteGithubComment,
 }: PeekdiffViewerProps) {
   const nextCommentKeyRef = useRef(0);
   const activeDraftRef = useRef<ActiveDraftComment | null>(null);
@@ -423,6 +429,9 @@ export const PeekdiffViewer = memo(function PeekdiffViewer({
           itemId={item.id}
           onDelete={handleRemoveComment}
           onToggleSelection={handleToggleCommentSelection}
+          currentUserLogin={authorLogin}
+          onEditGithubComment={onEditGithubComment}
+          onDeleteGithubComment={onDeleteGithubComment}
         />
       );
     }

@@ -36,6 +36,8 @@ import { cn } from '@/lib/cn';
 import {
   annotationSideToGithub,
   createReview,
+  deleteReviewComment,
+  editReviewComment,
   getPull,
   getPullHeadSha,
   parsePullRef,
@@ -508,6 +510,43 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
     [githubToken, path, reloadComments]
   );
 
+  // Edit / delete the current user's own posted review comments. Errors
+  // propagate to the inline card, which shows them; success reloads threads.
+  const handleEditComment = useCallback(
+    async (commentId: number, body: string) => {
+      const pullRef = parsePullRef(path);
+      if (githubToken == null || pullRef == null) {
+        return;
+      }
+      await editReviewComment({
+        owner: pullRef.owner,
+        repo: pullRef.repo,
+        commentId,
+        body,
+        token: githubToken,
+      });
+      await reloadComments();
+    },
+    [githubToken, path, reloadComments]
+  );
+
+  const handleDeleteComment = useCallback(
+    async (commentId: number) => {
+      const pullRef = parsePullRef(path);
+      if (githubToken == null || pullRef == null) {
+        return;
+      }
+      await deleteReviewComment({
+        owner: pullRef.owner,
+        repo: pullRef.repo,
+        commentId,
+        token: githubToken,
+      });
+      await reloadComments();
+    },
+    [githubToken, path, reloadComments]
+  );
+
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 767px)');
     const updateMobileState = (matches: boolean) => {
@@ -679,6 +718,8 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
             onCommentSaved={handleCommentSaved}
             onLineLinkChange={onLineLinkChange}
             onViewerReady={onViewerReady}
+            onEditGithubComment={handleEditComment}
+            onDeleteGithubComment={handleDeleteComment}
           />
         </>
       ) : (

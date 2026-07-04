@@ -22,9 +22,12 @@ export interface SavedCommentMetadata {
   // comment by the signed-in user, or a thread loaded from a PR review). Lets
   // the inline card show the real avatar instead of a local persona.
   authorAvatarUrl?: string;
-  // Reply previews for a GitHub-loaded review thread (read-only), shown beneath
-  // the root comment inline.
+  // Reply previews for a GitHub-loaded review thread, shown beneath the root
+  // comment inline.
   githubReplies?: GitHubReplyPreview[];
+  // The root comment's GitHub id (only for loaded `gh-*` threads), so the
+  // author can edit/delete it inline.
+  githubCommentId?: number;
 }
 
 export interface DraftCommentMetadata {
@@ -69,6 +72,9 @@ export interface PeekdiffDeletedCommentEvent {
 
 // A preview of a reply within a GitHub review thread (read-only display).
 export interface GitHubReplyPreview {
+  // GitHub review-comment id, so a reply authored by the current user can be
+  // edited/deleted.
+  id: number;
   login: string;
   avatarUrl: string;
   body: string;

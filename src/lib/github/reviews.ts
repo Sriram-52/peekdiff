@@ -262,6 +262,84 @@ export async function replyToThread({
   }
 }
 
+// Edits an existing review comment (root or reply). GitHub only lets the
+// comment's author edit it; a 403 surfaces that. Note the endpoint is
+// repo-level (no pull number) and keyed by the numeric comment id.
+export async function editReviewComment({
+  owner,
+  repo,
+  commentId,
+  body,
+  token,
+  signal,
+}: {
+  owner: string;
+  repo: string;
+  commentId: number;
+  body: string;
+  token: string;
+  signal?: AbortSignal;
+}): Promise<void> {
+  const response = await fetch(
+    `${GITHUB_API_ORIGIN}/repos/${owner}/${repo}/pulls/comments/${commentId}`,
+    {
+      method: 'PATCH',
+      headers: { ...githubHeaders(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body }),
+      cache: 'no-store',
+      signal,
+    }
+  );
+  if (!response.ok) {
+    throw new ReviewsError(
+      await readError(
+        response,
+        response.status === 403
+          ? 'You can only edit your own comments'
+          : 'Failed to edit the comment'
+      ),
+      response.status
+    );
+  }
+}
+
+// Deletes a review comment (root or reply) the current user authored.
+export async function deleteReviewComment({
+  owner,
+  repo,
+  commentId,
+  token,
+  signal,
+}: {
+  owner: string;
+  repo: string;
+  commentId: number;
+  token: string;
+  signal?: AbortSignal;
+}): Promise<void> {
+  const response = await fetch(
+    `${GITHUB_API_ORIGIN}/repos/${owner}/${repo}/pulls/comments/${commentId}`,
+    {
+      method: 'DELETE',
+      headers: githubHeaders(token),
+      cache: 'no-store',
+      signal,
+    }
+  );
+  // 204 = deleted. 404 can mean already gone — treat as success.
+  if (!response.ok && response.status !== 404) {
+    throw new ReviewsError(
+      await readError(
+        response,
+        response.status === 403
+          ? 'You can only delete your own comments'
+          : 'Failed to delete the comment'
+      ),
+      response.status
+    );
+  }
+}
+
 interface RawReviewComment {
   id: number;
   in_reply_to_id?: number | null;
@@ -457,6 +535,7 @@ export function reviewThreadsToCommentSections(
     const replies: GitHubReplyPreview[] = thread.comments
       .slice(1)
       .map((reply) => ({
+        id: reply.id,
         login: reply.login,
         avatarUrl: reply.avatarUrl,
         body: reply.body,
