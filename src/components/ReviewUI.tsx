@@ -17,6 +17,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { toast } from 'sonner';
 
 import { PeekdiffHeader } from './PeekdiffHeader';
 import { PeekdiffSidebar } from './PeekdiffSidebar';
@@ -480,6 +481,16 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
           comments: pendingComments,
         });
         await reloadComments();
+        // Confirm in place and offer a jump to the PR on GitHub. Reviews
+        // usually end with closing the tab, so we don't force a redirect.
+        const prUrl = `https://github.com/${pullRef.owner}/${pullRef.repo}/pull/${pullRef.pull}`;
+        toast.success('Review submitted', {
+          action: {
+            label: 'View on GitHub',
+            onClick: () =>
+              window.open(prUrl, '_blank', 'noopener,noreferrer'),
+          },
+        });
       } catch (error) {
         setReviewError(
           error instanceof ReviewsError

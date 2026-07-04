@@ -97,11 +97,12 @@ export function FloatingReviewButton({
     return null;
   }
 
-  // A COMMENT review needs inline comments or a summary; APPROVE /
-  // REQUEST_CHANGES can stand alone.
+  // GitHub rejects a COMMENT or REQUEST_CHANGES review that has no body and no
+  // inline comments with a 422. Only APPROVE can stand alone; the others need a
+  // summary or at least one pending comment.
+  const summaryOptional = event === 'APPROVE' || pendingCount > 0;
   const canSubmit =
-    !submitting &&
-    (pendingCount > 0 || event !== 'COMMENT' || summary.trim().length > 0);
+    !submitting && (summaryOptional || summary.trim().length > 0);
 
   return (
     <>
@@ -135,7 +136,11 @@ export function FloatingReviewButton({
               ref={summaryRef}
               value={summary}
               onChange={(e) => setSummary(e.currentTarget.value)}
-              placeholder="Review summary (optional)…"
+              placeholder={
+                summaryOptional
+                  ? 'Review summary (optional)…'
+                  : 'Review summary…'
+              }
               rows={3}
               className="field-sizing-content placeholder:text-muted-foreground focus-visible:ring-ring mb-2 w-full resize-none rounded-md border border-[var(--color-border-opaque)] bg-transparent px-2 py-1.5 text-[13px] focus:outline-none focus-visible:ring-2"
             />
