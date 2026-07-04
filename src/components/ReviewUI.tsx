@@ -46,6 +46,7 @@ import {
 } from '@/lib/github/reviews';
 import { removeSavedCommentSidebarEntry } from '@/lib/removeSavedCommentSidebarEntry';
 import { SITE_NAME } from '@/lib/site';
+import { fetchViewedState, setFilesViewed } from '@/lib/github/viewedSync';
 import { loadViewedFiles, saveViewedFiles } from '@/lib/viewedFiles';
 import type { DarkThemeName, LightThemeName } from '@/lib/themeNames';
 import type {
@@ -215,6 +216,99 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
   useEffect(() => {
     saveViewedFiles(path, viewedPaths);
   }, [path, viewedPaths]);
+
+  // GitHub is the source of truth for viewed state. When authed on a PR we
+  // reconcile the local (optimistic) set against GitHub's own viewerViewedState
+  // on load, then mirror every local change back via markFileAsViewed /
+  // unmarkFileAsViewed. Public / unauthed / non-PR stays local-only.
+  const pullRequestIdRef = useRef<string | null>(null);
+  // The set we believe GitHub currently holds; null until reconciled, which
+  // gates the localStorage seed from firing spurious mutations before we know
+  // GitHub's truth (and keeps local-only mode from ever calling GraphQL).
+  const syncedViewedRef = useRef<ReadonlySet<string> | null>(null);
+
+  useEffect(() => {
+    pullRequestIdRef.current = null;
+    syncedViewedRef.current = null;
+    const pullRef = parsePullRef(path);
+    if (githubToken == null || pullRef == null) {
+      return;
+    }
+    const controller = new AbortController();
+    void (async () => {
+      try {
+        const { pullRequestId, viewedPaths: githubViewed } =
+          await fetchViewedState({
+            owner: pullRef.owner,
+            repo: pullRef.repo,
+            pull: Number(pullRef.pull),
+            token: githubToken,
+            signal: controller.signal,
+          });
+        if (controller.signal.aborted) {
+          return;
+        }
+        const githubSet = new Set(githubViewed);
+        pullRequestIdRef.current = pullRequestId;
+        // Baseline = what GitHub actually holds. The mirror effect will then
+        // push any LOCAL-only marks up to GitHub (best-effort — harmless if the
+        // token can't write, e.g. a GitHub App token; markFileAsViewed needs an
+        // OAuth `repo` token).
+        syncedViewedRef.current = githubSet;
+        // UNION local ∪ GitHub — never wipe the user's local viewed marks on
+        // reload, even on repos where the write mutation is denied (otherwise a
+        // reload would silently clear everything not yet stored on GitHub).
+        const merged = new Set<string>([
+          ...loadViewedFiles(path),
+          ...githubViewed,
+        ]);
+        setViewedPaths(merged);
+        saveViewedFiles(path, merged);
+      } catch (error) {
+        // Keep local state; sync stays disabled (syncedViewedRef stays null).
+        console.warn('Failed to load GitHub viewed state', error);
+      }
+    })();
+    return () => controller.abort();
+  }, [path, githubToken]);
+
+  useEffect(() => {
+    const pullRequestId = pullRequestIdRef.current;
+    const synced = syncedViewedRef.current;
+    if (synced == null || pullRequestId == null || githubToken == null) {
+      return;
+    }
+    const changes: { path: string; viewed: boolean }[] = [];
+    for (const p of viewedPaths) {
+      if (!synced.has(p)) changes.push({ path: p, viewed: true });
+    }
+    for (const p of synced) {
+      if (!viewedPaths.has(p)) changes.push({ path: p, viewed: false });
+    }
+    if (changes.length === 0) {
+      return;
+    }
+    // Optimistic: assume success (next PR load reconciles from GitHub truth).
+    syncedViewedRef.current = new Set(viewedPaths);
+    const controller = new AbortController();
+    void setFilesViewed({
+      pullRequestId,
+      token: githubToken,
+      changes,
+      signal: controller.signal,
+    })
+      .then(({ failed }) => {
+        if (failed.length > 0) {
+          console.warn(
+            `Failed to sync viewed state to GitHub for ${failed.length} file(s)`
+          );
+        }
+      })
+      .catch((error) => {
+        console.warn('Failed to sync viewed state to GitHub', error);
+      });
+    return () => controller.abort();
+  }, [viewedPaths, githubToken]);
 
   // path <-> itemId maps derived from the tree source (pathToItemId: path->id).
   const itemIdToPath = useMemo(() => {

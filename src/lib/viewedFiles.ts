@@ -2,8 +2,9 @@
 //
 // A reviewer can mark each file as viewed to track progress through a PR
 // (GitHub's "Viewed" checkbox). State is keyed by the pull request so it
-// survives reloads and is scoped to that PR. Purely local — we do not sync
-// GitHub's server-side viewed state.
+// survives reloads and is scoped to that PR. This is the optimistic/offline
+// layer; when authed on a PR it is reconciled with GitHub's own viewed state
+// via src/lib/github/viewedSync.ts (GitHub is the source of truth).
 import { parsePullRef } from '@/lib/github/reviews';
 
 function storageKey(path: string): string | null {
