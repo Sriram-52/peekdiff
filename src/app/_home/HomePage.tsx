@@ -1,9 +1,8 @@
-import {
-  IconArrowRightShort,
-  IconBrandDiscord,
-  IconBrandGithub,
-  IconBrandTwitterX,
-} from '@pierre/icons';
+// Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
+// peekdiff authors: rebranded the landing page to peekdiff, rewrote the copy to
+// describe peekdiff (private repos + inline review), replaced Pierre's social
+// links with the peekdiff repo, and kept an honest credit to DiffsHub/Pierre.
+import { IconArrowRightShort, IconBrandGithub } from '@pierre/icons';
 import Link from 'next/link';
 
 import { DiffsHubLogo } from '@/components/DiffsHubLogo';
@@ -24,37 +23,22 @@ const EXAMPLE_URLS = [
   'ghostty-org/ghostty/pull/12291',
 ] as const;
 
-const SOCIAL_LINKS = [
-  {
-    label: 'X',
-    href: 'https://x.com/pierrecomputer',
-    Icon: IconBrandTwitterX,
-  },
-  {
-    label: 'Discord',
-    href: 'https://discord.gg/pierre',
-    Icon: IconBrandDiscord,
-  },
-  {
-    label: 'GitHub',
-    href: 'https://github.com/pierrecomputer/pierre',
-    Icon: IconBrandGithub,
-  },
-];
-
 export function HomePage() {
   return (
     <div className="flex min-h-[100svh] min-w-screen flex-col items-center justify-center md:bg-[var(--diffshub-sidebar-bg)] md:py-12">
       <section className="relative flex min-h-[100svh] w-2xl max-w-[100vw] flex-col justify-center space-y-4 px-6 pt-8 text-sm min-[340px]:text-base md:block md:min-h-0">
         <h2 className="flex items-center gap-1.5 text-2xl font-semibold tracking-tight">
           <DiffsHubLogo />
-          DiffsHub
+          peekdiff
         </h2>
         <p className="text-muted-foreground text-pretty">
-          View code changes from any public GitHub diff—PRs, comparisons,
-          commits, diffs, and patches—with a super-freaking-fast, beautiful, and
-          virtualized interface by replacing <code>github.com</code> with{' '}
-          <code>diffshub.com</code>.
+          Read GitHub diffs fast. Open any pull request, commit, or comparison—
+          <strong className="text-foreground font-medium">
+            public or private
+          </strong>
+          —in a virtualized, syntax-highlighted viewer, and review it inline:
+          threaded comments with markdown, batched reviews, and per-file viewed
+          tracking.
         </p>
         <div className="text-muted-foreground flex flex-col gap-[2px] font-mono leading-[22px] tracking-tight">
           <code className="diffshub-border-deleted rounded-l font-normal text-inherit">
@@ -64,14 +48,14 @@ export function HomePage() {
             </span>
           </code>
           <code className="truncate rounded-l border-l-[4px] border-[#07c480] font-normal text-inherit">
-            <code className={DIFF_LINE_ADDED_BADGE}>+ diffshub</code>
-            .com/org/repo/pull/number
+            <code className={DIFF_LINE_ADDED_BADGE}>+ peekdiff</code>
+            /org/repo/pull/number
           </code>
         </div>
         <HomeFetchForm />
         <div className="space-y-2">
           <h3 className="text-muted-foreground text-sm font-normal">
-            Enter a URL above, or use one of these:
+            Paste a GitHub URL above, or try one of these:
           </h3>
           <ul className="mb-5 flex flex-col gap-1 text-sm">
             {EXAMPLE_URLS.map((url) => (
@@ -92,15 +76,9 @@ export function HomePage() {
             ))}
           </ul>
           <p className="text-muted-foreground hidden text-sm md:block">
-            You can also compare millions of lines with ease, like{' '}
-            <Link
-              href="/torvalds/linux/compare/v6.0...v7.0"
-              className="inline-link"
-            >
-              v6...v7 of Linux
-            </Link>
-            . This sometimes crashes mobile browsers, and GitHub unreliably
-            serves diffs over 100k lines with a delayed first byte.
+            To view a private repository, connect GitHub—your diffs are fetched
+            straight from the GitHub API in your browser, so private source never
+            touches the peekdiff server.
           </p>
         </div>
       </section>
@@ -110,7 +88,16 @@ export function HomePage() {
       >
         <Divider />
         <p className="text-muted-foreground text-sm text-pretty">
-          Built by{' '}
+          Built on{' '}
+          <Link
+            href="https://diffshub.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-link"
+          >
+            DiffsHub
+          </Link>{' '}
+          by{' '}
           <Link
             href="https://pierre.computer"
             target="_blank"
@@ -118,17 +105,8 @@ export function HomePage() {
             className="inline-link"
           >
             The Pierre Computer Company
-          </Link>{' '}
-          with{' '}
-          <Link
-            href="https://trees.software/docs#react-api-filetree"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-link"
-          >
-            FileTree
-          </Link>{' '}
-          and the new{' '}
+          </Link>
+          , using their{' '}
           <Link
             href="https://diffs.com/docs#codeview"
             target="_blank"
@@ -137,24 +115,30 @@ export function HomePage() {
           >
             CodeView
           </Link>{' '}
-          component.
+          and{' '}
+          <Link
+            href="https://trees.software/docs#react-api-filetree"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-link"
+          >
+            FileTree
+          </Link>
+          . peekdiff adds private repositories and inline PR review.
         </p>
         <nav
-          aria-label="Social links"
+          aria-label="Links"
           className="-ml-2 flex items-center gap-2 pt-2"
         >
-          {SOCIAL_LINKS.map(({ label, href, Icon }) => (
-            <a
-              key={label}
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={label}
-              className="text-muted-foreground hover:text-foreground rounded-md p-2 transition-colors"
-            >
-              <Icon />
-            </a>
-          ))}
+          <a
+            href="https://github.com/Sriram-52/peekdiff"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="peekdiff on GitHub"
+            className="text-muted-foreground hover:text-foreground rounded-md p-2 transition-colors"
+          >
+            <IconBrandGithub />
+          </a>
         </nav>
       </section>
     </div>

@@ -1,19 +1,24 @@
+// Derived from DiffsHub (pierrecomputer/pierre), Apache-2.0. Changes by the
+// peekdiff authors: replaced Pierre's logo artwork (their trademark, not
+// licensed) with an original "peek" eye mark and relabeled it peekdiff.
 import { cn } from '@/lib/cn';
 
 export function DiffsHubLogo({ className }: { className?: string }) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 32 32"
+      viewBox="0 0 24 24"
       className={cn('size-6 shrink-0', className)}
       fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
       role="img"
-      aria-label="DiffsHub"
+      aria-label="peekdiff"
     >
-      <path
-        fill="currentcolor"
-        d="M16 0c13.176 0 16 2.824 16 16s-2.824 16-16 16S0 29.176 0 16 2.824 0 16 0m5 16.625c-.621 0-1.125.504-1.125 1.125v2.125H17.75a1.125 1.125 0 0 0 0 2.25h2.125v2.125a1.125 1.125 0 0 0 2.25 0v-2.125h2.125a1.125 1.125 0 0 0 0-2.25h-2.125V17.75c0-.621-.504-1.125-1.125-1.125m-12.25 3.25a1.125 1.125 0 0 0 0 2.25h4.5a1.125 1.125 0 0 0 0-2.25zM11 6.625c-.621 0-1.125.504-1.125 1.125v2.125H7.75a1.125 1.125 0 0 0 0 2.25h2.125v2.125a1.125 1.125 0 0 0 2.25 0v-2.125h2.125a1.125 1.125 0 0 0 0-2.25h-2.125V7.75c0-.621-.504-1.125-1.125-1.125m7.75 3.25a1.125 1.125 0 0 0 0 2.25h4.5a1.125 1.125 0 0 0 0-2.25z"
-      />
+      <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" />
+      <circle cx="12" cy="12" r="2.6" fill="currentColor" stroke="none" />
     </svg>
   );
 }
