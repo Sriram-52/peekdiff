@@ -30,7 +30,7 @@ import {
 } from 'react';
 
 import { CHROME_ICON_BUTTON_CLASS } from './chromeButtonStyles';
-import { DiffsHubLogo } from './DiffsHubLogo';
+import { PeekDiffLogo } from './PeekDiffLogo';
 import { DiffUrlForm } from './DiffUrlForm';
 import { useChromeThemeProps } from './useChromeThemeProps';
 import { Button } from '@/components/Button';
@@ -135,7 +135,7 @@ export const DiffsHubHeader = memo(function DiffsHubHeader({
         href="/"
         className="absolute top-4 left-[50%] inline-flex -translate-x-1/2 transition-transform duration-200 hover:scale-110 md:static md:translate-x-0"
       >
-        <DiffsHubLogo />
+        <PeekDiffLogo />
       </Link>
       <DiffUrlForm
         className="order-last md:order-none md:mr-auto"
