@@ -35,7 +35,11 @@ interface GitHubOAuthConfig {
   mode: AuthMode;
 }
 
-// Which mode is configured. OAuth App takes precedence when both are set.
+// Which mode is active. peekdiff runs OAuth-only: it uses the OAuth App when
+// configured, and does NOT fall back to the GitHub App even if GITHUB_APP_*
+// creds are present. The 'app' mode and all GitHub App code paths (buildAuthorizeUrl
+// app branch, install-flow callback handling, etc.) are kept intact but
+// intentionally never selected here — flip this on to re-enable App support.
 export function getAuthMode(): AuthMode | null {
   if (
     process.env.GITHUB_OAUTH_CLIENT_ID &&
@@ -43,9 +47,8 @@ export function getAuthMode(): AuthMode | null {
   ) {
     return 'oauth';
   }
-  if (process.env.GITHUB_APP_CLIENT_ID && process.env.GITHUB_APP_CLIENT_SECRET) {
-    return 'app';
-  }
+  // GitHub App fallback intentionally disabled (OAuth-only). To restore it,
+  // return 'app' here when GITHUB_APP_CLIENT_ID/SECRET are set.
   return null;
 }
 
