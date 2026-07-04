@@ -507,3 +507,16 @@
 .cmt-md input[type='checkbox'] {
   margin-right: 0.4em;
 }
+.cmt-md details {
+  margin: 0 0 0.5em;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 6px;
+  padding: 0.3em 0.6em;
+}
+.cmt-md summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+.cmt-md details[open] summary {
+  margin-bottom: 0.4em;
+}

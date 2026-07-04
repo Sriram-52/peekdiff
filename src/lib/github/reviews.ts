@@ -85,16 +85,31 @@ async function readError(response: Response, fallback: string): Promise<string> 
 }
 
 // The head commit SHA is required as `commit_id` when creating review comments.
-export async function getPullHeadSha({
+export interface PullMeta {
+  headSha: string;
+  title: string;
+  number: number;
+}
+
+// Fetches PR metadata (head SHA for review posting, plus title/number for the
+// page title). `token` is optional so public PRs can resolve a title without a
+// signed-in session; private PRs require it.
+export async function getPull({
   owner,
   repo,
   pull,
   token,
   signal,
-}: PullRef & { token: string; signal?: AbortSignal }): Promise<string> {
+}: PullRef & { token?: string; signal?: AbortSignal }): Promise<PullMeta> {
+  const headers: HeadersInit = token
+    ? githubHeaders(token)
+    : {
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': GITHUB_API_VERSION,
+      };
   const response = await fetch(
     `${GITHUB_API_ORIGIN}/repos/${owner}/${repo}/pulls/${pull}`,
-    { headers: githubHeaders(token), cache: 'no-store', signal }
+    { headers, cache: 'no-store', signal }
   );
   if (!response.ok) {
     throw new ReviewsError(
@@ -102,12 +117,26 @@ export async function getPullHeadSha({
       response.status
     );
   }
-  const data = (await response.json()) as { head?: { sha?: string } };
-  const sha = data.head?.sha;
-  if (!sha) {
+  const data = (await response.json()) as {
+    head?: { sha?: string };
+    title?: string;
+    number?: number;
+  };
+  return {
+    headSha: data.head?.sha ?? '',
+    title: data.title ?? '',
+    number: data.number ?? Number(pull),
+  };
+}
+
+export async function getPullHeadSha(
+  args: PullRef & { token: string; signal?: AbortSignal }
+): Promise<string> {
+  const { headSha } = await getPull(args);
+  if (!headSha) {
     throw new ReviewsError('Pull request has no head commit SHA.', 500);
   }
-  return sha;
+  return headSha;
 }
 
 export interface AuthedUser {

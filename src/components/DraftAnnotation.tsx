@@ -104,6 +104,14 @@ export function DraftAnnotation({
           Cancel
         </Button>
         <Button
+          type="button"
+          variant="muted"
+          onClick={tryCancel}
+          className="text-muted-foreground hover:text-foreground hidden font-normal hover:no-underline md:flex"
+        >
+          Cancel
+        </Button>
+        <Button
           type="submit"
           variant="default"
           size="icon-md"

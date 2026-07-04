@@ -35,6 +35,7 @@ import { preloadAvatars } from '@/lib/annotation';
 import {
   annotationSideToGithub,
   createReview,
+  getPull,
   getPullHeadSha,
   parsePullRef,
   replyToThread,
@@ -43,6 +44,7 @@ import {
   ReviewsError,
 } from '@/lib/github/reviews';
 import { removeSavedCommentSidebarEntry } from '@/lib/removeSavedCommentSidebarEntry';
+import { SITE_NAME } from '@/lib/site';
 import { loadViewedFiles, saveViewedFiles } from '@/lib/viewedFiles';
 import type { DarkThemeName, LightThemeName } from '@/lib/themeNames';
 import type {
@@ -75,6 +77,35 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
   const { token: githubToken, user: githubUser, login } = useGitHubAuth();
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+
+  // Set the browser tab title to the PR title (e.g. "Fix header · #5381 · peekdiff").
+  // Runs client-side since the title comes from an authed GitHub fetch; never
+  // blocks the diff and silently keeps the default title on failure.
+  useEffect(() => {
+    const pullRef = parsePullRef(path);
+    if (pullRef == null) {
+      document.title = SITE_NAME;
+      return;
+    }
+    const controller = new AbortController();
+    void getPull({
+      ...pullRef,
+      token: githubToken ?? undefined,
+      signal: controller.signal,
+    })
+      .then(({ title, number }) => {
+        if (!controller.signal.aborted && title) {
+          document.title = `${title} · #${number} · ${SITE_NAME}`;
+        }
+      })
+      .catch(() => {
+        // Leave the default title on any failure (private + not connected, etc.)
+      });
+    return () => {
+      controller.abort();
+      document.title = SITE_NAME;
+    };
+  }, [path, githubToken]);
 
   const isWorkerPoolReadyOrDisable = useIsWorkerPoolReadyOrDisabled();
   const [diffStyle, setDiffStyle] = useState<'split' | 'unified'>('split');
