@@ -52,12 +52,35 @@ Public repos need no configuration. To view a diff, open
 `http://localhost:3000/<owner>/<repo>/pull/<n>` (also `/commit/<sha>` and
 `/compare/<base>...<head>`).
 
-## Private repositories (GitHub App)
+## Private repositories
 
-Private-repo support uses a GitHub App with the **user access token** flow. A
-thin server exchanges the OAuth code for a token; the browser then fetches the
-diff **directly from `api.github.com`**, so private source never passes through
-the peekdiff server.
+Either auth mode: a thin server exchanges the OAuth code for a user token; the
+browser then fetches diffs **directly from `api.github.com`**, so private source
+never passes through the peekdiff server. Pick one:
+
+### Option A — OAuth App (recommended for personal use)
+
+One "Login with GitHub" grants access to **every repo you can access** (owner or
+contributor), with **no per-repo install**. It's also required for writing
+GitHub's per-file "viewed" state (a GitHub App token can't). Trade-off: the
+token has broad `repo` read/write scope.
+
+1. GitHub → Settings → Developer settings → **OAuth Apps** → **New OAuth App**.
+2. **Homepage URL:** `http://localhost:3000` (or your prod URL).
+3. **Authorization callback URL:** `http://localhost:3000/api/github/callback`
+   (add your production callback too).
+4. Create it, copy the **Client ID**, generate a **client secret**.
+5. In `.env.local` set `GITHUB_OAUTH_CLIENT_ID` and `GITHUB_OAUTH_CLIENT_SECRET`.
+6. Restart `pnpm dev`, click **Connect GitHub**, authorize. Done — no installs.
+
+peekdiff requests `scope=repo`. Orgs with third-party-app restrictions may still
+require an owner to approve the OAuth App. **OAuth mode takes precedence over the
+GitHub App when both are configured.**
+
+### Option B — GitHub App (least privilege; per-repo install)
+
+Only sees repos the app is **installed** on (not everything you can access). No
+`markFileAsViewed` sync. Good if you want fine-grained, revocable access.
 
 ### One-time GitHub App registration
 

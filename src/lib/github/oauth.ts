@@ -21,40 +21,76 @@ export const ACCESS_EXPIRY_COOKIE = 'pd_gh_exp';
 export const OAUTH_STATE_COOKIE = 'pd_gh_state';
 export const RETURN_TO_COOKIE = 'pd_gh_return';
 
+// Two auth modes share the same OAuth endpoints:
+//   'oauth' — a classic OAuth App with `scope=repo`: the token can read/review
+//             EVERY repo the user can access, with no per-repo install. Used
+//             when GITHUB_OAUTH_CLIENT_ID/SECRET are set (preferred).
+//   'app'   — a GitHub App user token: install-scoped, least privilege. Used
+//             when only GITHUB_APP_CLIENT_ID/SECRET are set.
+export type AuthMode = 'oauth' | 'app';
+
 interface GitHubOAuthConfig {
   clientId: string;
   clientSecret: string;
+  mode: AuthMode;
 }
 
-// Reads the GitHub App credentials. Throws a clear error (surfaced as a 500 by
-// the routes) when the app has not been configured yet, so a missing .env is
-// obvious rather than a cryptic OAuth failure.
-export function getOAuthConfig(): GitHubOAuthConfig {
-  const clientId = process.env.GITHUB_APP_CLIENT_ID;
-  const clientSecret = process.env.GITHUB_APP_CLIENT_SECRET;
-  if (!clientId || !clientSecret) {
-    throw new Error(
-      'GitHub App is not configured. Set GITHUB_APP_CLIENT_ID and ' +
-        'GITHUB_APP_CLIENT_SECRET (see README).'
-    );
+// Which mode is configured. OAuth App takes precedence when both are set.
+export function getAuthMode(): AuthMode | null {
+  if (
+    process.env.GITHUB_OAUTH_CLIENT_ID &&
+    process.env.GITHUB_OAUTH_CLIENT_SECRET
+  ) {
+    return 'oauth';
   }
-  return { clientId, clientSecret };
+  if (process.env.GITHUB_APP_CLIENT_ID && process.env.GITHUB_APP_CLIENT_SECRET) {
+    return 'app';
+  }
+  return null;
 }
 
-export function isGitHubAppConfigured(): boolean {
-  return Boolean(
-    process.env.GITHUB_APP_CLIENT_ID && process.env.GITHUB_APP_CLIENT_SECRET
+// Resolves the active credentials + mode. Throws a clear error (surfaced as a
+// 500 by the routes) when nothing is configured yet.
+export function getOAuthConfig(): GitHubOAuthConfig {
+  const mode = getAuthMode();
+  if (mode === 'oauth') {
+    return {
+      clientId: process.env.GITHUB_OAUTH_CLIENT_ID as string,
+      clientSecret: process.env.GITHUB_OAUTH_CLIENT_SECRET as string,
+      mode,
+    };
+  }
+  if (mode === 'app') {
+    return {
+      clientId: process.env.GITHUB_APP_CLIENT_ID as string,
+      clientSecret: process.env.GITHUB_APP_CLIENT_SECRET as string,
+      mode,
+    };
+  }
+  throw new Error(
+    'GitHub auth is not configured. Set GITHUB_OAUTH_CLIENT_ID + ' +
+      'GITHUB_OAUTH_CLIENT_SECRET (OAuth App, recommended) or ' +
+      'GITHUB_APP_CLIENT_ID + GITHUB_APP_CLIENT_SECRET (GitHub App). See README.'
   );
 }
 
+// True when EITHER mode is configured. (Name kept for existing callers.)
+export function isGitHubAppConfigured(): boolean {
+  return getAuthMode() !== null;
+}
+
 export function buildAuthorizeUrl(state: string, redirectUri: string): string {
-  const { clientId } = getOAuthConfig();
+  const { clientId, mode } = getOAuthConfig();
   const url = new URL(GITHUB_AUTHORIZE_URL);
   url.searchParams.set('client_id', clientId);
   url.searchParams.set('redirect_uri', redirectUri);
   url.searchParams.set('state', state);
-  // Note: GitHub *Apps* derive repo access from the app's configured
-  // permissions + installations, so no `scope` param is sent here.
+  if (mode === 'oauth') {
+    // Classic OAuth App: request full repo access so the token can read and
+    // review any repo the user can access (public + private), no install.
+    url.searchParams.set('scope', 'repo');
+  }
+  // GitHub App mode derives repo access from installations, so no scope param.
   return url.href;
 }
 

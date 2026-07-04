@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 
-import { getValidAccessToken, isGitHubAppConfigured } from '@/lib/github/oauth';
+import {
+  getAuthMode,
+  getValidAccessToken,
+  isGitHubAppConfigured,
+} from '@/lib/github/oauth';
 
 // Same-origin endpoint the client hook calls to learn whether the visitor is
 // connected and, if so, to obtain the current user access token for direct
@@ -8,11 +12,12 @@ import { getValidAccessToken, isGitHubAppConfigured } from '@/lib/github/oauth';
 // (never rendered into HTML) and refreshed here when near expiry.
 export async function GET() {
   const configured = isGitHubAppConfigured();
+  const authMode = getAuthMode();
   const session = configured ? await getValidAccessToken() : null;
 
   if (session == null) {
     return NextResponse.json(
-      { authenticated: false, configured },
+      { authenticated: false, configured, authMode },
       { headers: { 'Cache-Control': 'no-store' } }
     );
   }
@@ -21,6 +26,7 @@ export async function GET() {
     {
       authenticated: true,
       configured,
+      authMode,
       token: session.token,
       expiresAt: session.expiresAt,
     },
