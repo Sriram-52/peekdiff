@@ -9,6 +9,7 @@ import {
   areSelectionsEqual,
   type CodeViewItem,
   type CodeViewLineSelection,
+  type DiffLineAnnotation,
   processFile,
 } from '@pierre/diffs';
 import { type CodeViewHandle, useStableCallback } from '@pierre/diffs/react';
@@ -204,6 +205,87 @@ export function usePatchLoader({
     }
   );
 
+  // Renders GitHub-loaded review threads inline in the diff body by attaching
+  // saved annotations to each diff item at its line, mirroring how a drafted
+  // comment appears inline. Idempotent: replaces the previously-injected
+  // GitHub set (keys prefixed "gh-") so a reload after posting doesn't stack
+  // duplicates, while leaving locally-drafted annotations untouched.
+  const applyLoadedThreadAnnotations = useStableCallback(
+    (sections: DiffsHubSavedCommentItem[]) => {
+      const byItem = new Map<string, DiffLineAnnotation<CommentMetadata>[]>();
+      for (const section of sections) {
+        for (const entry of section.comments) {
+          const annotation: DiffLineAnnotation<CommentMetadata> = {
+            side: entry.side,
+            lineNumber: entry.lineNumber,
+            metadata: {
+              kind: 'saved',
+              key: entry.key,
+              author: entry.author,
+              message: entry.message,
+              range: entry.range,
+              authorAvatarUrl: entry.authorAvatarUrl,
+              githubReplies: entry.githubReplies,
+            },
+          };
+          const list = byItem.get(entry.itemId) ?? [];
+          list.push(annotation);
+          byItem.set(entry.itemId, list);
+        }
+      }
+
+      const mergeAnnotations = (
+        existing: readonly DiffLineAnnotation<CommentMetadata>[] | undefined,
+        itemId: string
+      ): DiffLineAnnotation<CommentMetadata>[] => {
+        const kept = (existing ?? []).filter(
+          (annotation) => !annotation.metadata.key.startsWith('gh-')
+        );
+        return [...kept, ...(byItem.get(itemId) ?? [])];
+      };
+
+      const viewer = viewerRef.current;
+      if (viewer != null) {
+        // Union of items with fresh threads and items that may still carry a
+        // stale GitHub set from a previous load, so removals also take effect.
+        const itemIds = new Set<string>(byItem.keys());
+        for (const id of loadedItemIdsRef.current) {
+          itemIds.add(id);
+        }
+        for (const itemId of itemIds) {
+          const item = viewer.getItem(itemId);
+          if (item == null || item.type !== 'diff') {
+            continue;
+          }
+          const next = mergeAnnotations(item.annotations, itemId);
+          const prevLength = item.annotations?.length ?? 0;
+          if (next.length === 0 && prevLength === 0) {
+            continue;
+          }
+          item.annotations = next;
+          item.version = getNextItemVersion(item);
+          viewer.updateItem(item);
+        }
+        return;
+      }
+
+      // Viewer not mounted yet: pre-populate the buffered items so annotations
+      // arrive with the first render.
+      setInitialItems((prev) =>
+        prev.map((item) => {
+          if (item.type !== 'diff') {
+            return item;
+          }
+          const next = mergeAnnotations(item.annotations, item.id);
+          if (next.length === 0 && (item.annotations?.length ?? 0) === 0) {
+            return item;
+          }
+          return { ...item, annotations: next };
+        })
+      );
+    }
+  );
+
   const tryApplyLineHashTarget = useStableCallback(() => {
     const { hash } = window.location;
     const target = parseDiffsHubLineHash(hash);
@@ -300,6 +382,7 @@ export function usePatchLoader({
             }
             if (isCurrentRequest()) {
               setCommentSections(sections);
+              applyLoadedThreadAnnotations(sections);
             }
           } catch (error) {
             if (isCurrentRequest()) {
@@ -601,6 +684,7 @@ export function usePatchLoader({
       controller.abort();
     };
   }, [
+    applyLoadedThreadAnnotations,
     authToken,
     domain,
     loadAttempt,
@@ -640,10 +724,11 @@ export function usePatchLoader({
         commentFileByItemId
       );
       setCommentSections(sections);
+      applyLoadedThreadAnnotations(sections);
     } catch (error) {
       console.warn('peekdiff: failed to reload review comments', error);
     }
-  }, [authToken, path, commentFileByItemId]);
+  }, [authToken, path, commentFileByItemId, applyLoadedThreadAnnotations]);
 
   return {
     applyCollapseModeToLoaded,

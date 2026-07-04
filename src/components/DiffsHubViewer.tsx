@@ -296,6 +296,9 @@ export const DiffsHubViewer = memo(function DiffsHubViewer({
                 author,
                 message: trimmedMessage,
                 range: annotation.metadata.range,
+                // Keep the signed-in user's real avatar on the saved card so it
+                // doesn't fall back to a (404-ing) persona image after saving.
+                authorAvatarUrl,
               },
             };
           });

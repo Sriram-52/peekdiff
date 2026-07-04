@@ -22,6 +22,7 @@ import { DiffsHubHeader } from './DiffsHubHeader';
 import { DiffsHubSidebar } from './DiffsHubSidebar';
 import { DiffsHubStatusPanel } from './DiffsHubStatusPanel';
 import { DiffsHubViewer } from './DiffsHubViewer';
+import { FloatingReviewButton } from './FloatingReviewButton';
 import { useGitHubAuth } from './github-auth';
 import { ThemeSourceProvider } from './ThemeSourceProvider';
 import { usePatchLoader } from './usePatchLoader';
@@ -337,6 +338,13 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
 
   return (
     <ReviewGrid>
+      <FloatingReviewButton
+        canReview={canReview}
+        pendingCount={pendingComments.length}
+        submitting={reviewSubmitting}
+        error={reviewError}
+        onSubmit={handleSubmitReview}
+      />
       <DiffsHubHeader
         className="[grid-area:header]"
         collapseMode={collapseMode}
@@ -377,10 +385,7 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
             themeCycle={themeCycle}
             onSelectItem={handleSelectTreeItem}
             canReview={canReview}
-            pendingCommentCount={pendingComments.length}
             reviewSubmitting={reviewSubmitting}
-            reviewError={reviewError}
-            onSubmitReview={handleSubmitReview}
             onReplyToThread={handleReplyToThread}
           />
           <DiffsHubViewer

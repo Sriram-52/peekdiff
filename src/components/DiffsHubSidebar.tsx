@@ -29,11 +29,9 @@ import { CHROME_ICON_BUTTON_CLASS } from './chromeButtonStyles';
 import { DiffsHubCommentsList } from './DiffsHubCommentsList';
 import { DiffsHubDiffStats } from './DiffsHubDiffStats';
 import { DiffsHubFileTree } from './DiffsHubFileTree';
-import { ReviewSubmitBar } from './ReviewSubmitBar';
 import { useChromeThemeProps } from './useChromeThemeProps';
 import type { ThemeCycleControls } from './useThemeCycle';
 import { WorkerPoolStatus } from './WorkerPoolStatus';
-import type { ReviewEvent } from '@/lib/github/reviews';
 import { Button } from '@/components/Button';
 import { ButtonGroup, ButtonGroupItem } from '@/components/ButtonGroup';
 import {
@@ -74,12 +72,11 @@ interface DiffsHubSidebarProps {
   source: DiffsHubFileTreeSource;
   streaming: boolean;
   themeCycle: ThemeCycleControls;
-  // Review posting (present only when connected to GitHub on a PR path).
+  // Review state (present only when connected to GitHub on a PR path). The
+  // review-submit control now lives in the floating FloatingReviewButton;
+  // the sidebar only needs these for inline thread replies.
   canReview?: boolean;
-  pendingCommentCount?: number;
   reviewSubmitting?: boolean;
-  reviewError?: string | null;
-  onSubmitReview?(event: ReviewEvent, summary: string): void;
   onReplyToThread?(rootCommentId: number, body: string): void;
 }
 
@@ -96,10 +93,7 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
   streaming,
   themeCycle,
   canReview = false,
-  pendingCommentCount = 0,
   reviewSubmitting = false,
-  reviewError = null,
-  onSubmitReview,
   onReplyToThread,
 }: DiffsHubSidebarProps) {
   const [activeTab, setActiveTab] = useState<SidebarTab>('files');
@@ -316,14 +310,6 @@ export const DiffsHubSidebar = memo(function DiffsHubSidebar({
             hidden={activeTab !== 'comments'}
             className="flex h-full min-h-0 flex-col"
           >
-            {canReview && onSubmitReview != null && (
-              <ReviewSubmitBar
-                pendingCount={pendingCommentCount}
-                submitting={reviewSubmitting}
-                error={reviewError}
-                onSubmit={onSubmitReview}
-              />
-            )}
             <div className="min-h-0 flex-1">
               <DiffsHubCommentsList
                 commentSections={commentSections}

@@ -18,6 +18,13 @@ export interface SavedCommentMetadata {
   author: string;
   message: string;
   range: SelectedLineRange;
+  // Present when the comment is attributed to a real GitHub user (a just-saved
+  // comment by the signed-in user, or a thread loaded from a PR review). Lets
+  // the inline card show the real avatar instead of a local persona.
+  authorAvatarUrl?: string;
+  // Reply previews for a GitHub-loaded review thread (read-only), shown beneath
+  // the root comment inline.
+  githubReplies?: GitHubReplyPreview[];
 }
 
 export interface DraftCommentMetadata {
