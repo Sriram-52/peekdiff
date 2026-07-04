@@ -14,7 +14,14 @@ interface PeekdiffStatusPanelProps {
   // When true the failure looks like a private repo the visitor hasn't
   // connected GitHub for; the panel offers `onConnect` instead of a retry.
   needsAuth?: boolean;
+  // When true the visitor IS connected but GitHub denied/hid the repo (403/404)
+  // — likely an org that hasn't granted the app. Offer manage-access + reconnect.
+  needsAccess?: boolean;
+  // Deep link to GitHub's "manage access" page for the peekdiff app, where the
+  // user can grant an organization.
+  manageAccessUrl?: string | null;
   onConnect?(): void;
+  onReconnect?(): void;
   onRetry(): void;
   state: ViewerLoadState;
 }
@@ -22,7 +29,10 @@ interface PeekdiffStatusPanelProps {
 export function PeekdiffStatusPanel({
   errorMessage,
   needsAuth = false,
+  needsAccess = false,
+  manageAccessUrl,
   onConnect,
+  onReconnect,
   onRetry,
   state,
 }: PeekdiffStatusPanelProps) {
@@ -36,25 +46,30 @@ export function PeekdiffStatusPanel({
     Object.keys(chromeStyle).length > 0 ? chromeStyle : undefined;
   const isError = state === 'error';
   const showConnect = isError && needsAuth && onConnect != null;
-  const title = isError && needsAuth
-    ? 'This repo may be private'
-    : isError
-    ? 'Couldn’t load diff'
-    : state === 'parsing'
+  const showAccess = isError && needsAccess;
+  const title = !isError
+    ? state === 'parsing'
       ? 'Preparing diff'
       : state === 'fetching'
         ? 'Fetching diff'
-        : 'Streaming diff';
+        : 'Streaming diff'
+    : needsAuth
+      ? 'This repo may be private'
+      : needsAccess
+        ? 'Can’t access this repository'
+        : 'Couldn’t load diff';
 
-  const message = isError && needsAuth
-    ? 'Connect your GitHub account to view diffs from private repositories you have access to.'
-    : isError
-    ? (errorMessage ?? 'Failed to fetch the diff, please try again.')
-    : state === 'parsing'
+  const message = !isError
+    ? state === 'parsing'
       ? 'Parsing the patch and building the file tree…'
       : state === 'fetching'
         ? 'Fetching the patch from GitHub…'
-        : 'Reading the patch and showing files as they arrive…';
+        : 'Reading the patch and showing files as they arrive…'
+    : needsAuth
+      ? 'Connect your GitHub account to view diffs from private repositories you have access to.'
+      : needsAccess
+        ? 'You’re connected, but GitHub hasn’t granted peekdiff access to this repository. If it’s under an organization, grant the app access there, then reconnect.'
+        : (errorMessage ?? 'Failed to fetch the diff, please try again.');
 
   return (
     <div
@@ -86,6 +101,27 @@ export function PeekdiffStatusPanel({
           <Button type="button" className="mt-4" onClick={onConnect}>
             Connect GitHub
           </Button>
+        ) : showAccess ? (
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            {manageAccessUrl != null && (
+              <Button
+                type="button"
+                onClick={() =>
+                  window.open(manageAccessUrl, '_blank', 'noopener,noreferrer')
+                }
+              >
+                Manage GitHub access
+              </Button>
+            )}
+            {onReconnect != null && (
+              <Button type="button" variant="outline" onClick={onReconnect}>
+                Reconnect
+              </Button>
+            )}
+            <Button type="button" variant="ghost" onClick={onRetry}>
+              Try again
+            </Button>
+          </div>
         ) : isError ? (
           <Button type="button" className="mt-4" onClick={onRetry}>
             Try again

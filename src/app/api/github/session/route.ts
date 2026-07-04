@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 
 import {
   getAuthMode,
+  getClientId,
   getValidAccessToken,
   isGitHubAppConfigured,
 } from '@/lib/github/oauth';
@@ -13,11 +14,12 @@ import {
 export async function GET() {
   const configured = isGitHubAppConfigured();
   const authMode = getAuthMode();
+  const clientId = getClientId();
   const session = configured ? await getValidAccessToken() : null;
 
   if (session == null) {
     return NextResponse.json(
-      { authenticated: false, configured, authMode },
+      { authenticated: false, configured, authMode, clientId },
       { headers: { 'Cache-Control': 'no-store' } }
     );
   }
@@ -27,6 +29,7 @@ export async function GET() {
       authenticated: true,
       configured,
       authMode,
+      clientId,
       token: session.token,
       expiresAt: session.expiresAt,
     },

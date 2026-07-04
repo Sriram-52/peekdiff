@@ -78,7 +78,19 @@ export function ReviewUI({ domain, initialUrl, path }: ReviewUIProps) {
 function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
   useEffect(preloadAvatars, []);
 
-  const { token: githubToken, user: githubUser, login } = useGitHubAuth();
+  const {
+    token: githubToken,
+    user: githubUser,
+    clientId: githubClientId,
+    login,
+    reconnect,
+  } = useGitHubAuth();
+  // Deep link to grant the peekdiff app access to an org, shown when a connected
+  // user still can't reach a repo (needsAccess).
+  const manageAccessUrl =
+    githubClientId != null
+      ? `https://github.com/settings/connections/applications/${githubClientId}`
+      : null;
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
 
@@ -187,6 +199,7 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
     initialItems,
     loadState,
     needsAuth,
+    needsAccess,
     onLineLinkChange,
     onViewerReady,
     reloadComments,
@@ -726,7 +739,10 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
         <PeekdiffStatusPanel
           errorMessage={errorMessage}
           needsAuth={needsAuth}
+          needsAccess={needsAccess}
+          manageAccessUrl={manageAccessUrl}
           onConnect={() => login()}
+          onReconnect={() => void reconnect()}
           onRetry={retryLoad}
           state={loadState}
         />

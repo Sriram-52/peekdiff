@@ -92,6 +92,7 @@ interface UsePatchLoaderResult {
   // True when an unauthenticated load failed in a way consistent with the repo
   // being private, so the UI can prompt the visitor to connect GitHub.
   needsAuth: boolean;
+  needsAccess: boolean;
   onLineLinkChange(selection: CodeViewLineSelection | null): void;
   onViewerReady(): void;
   // Re-fetches GitHub review threads for the current PR and replaces the
@@ -129,6 +130,10 @@ export function usePatchLoader({
   const [loadState, setLoadState] = useState<ViewerLoadState>('fetching');
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [needsAuth, setNeedsAuth] = useState(false);
+  // True when we ARE connected but GitHub still denied/hid the repo (403/404) —
+  // e.g. an org that hasn't granted the OAuth app, or the GitHub App isn't
+  // installed on that owner. The UI offers "manage access" + reconnect.
+  const [needsAccess, setNeedsAccess] = useState(false);
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [viewerKey, setViewerKey] = useState(0);
   const requestIdRef = useRef(0);
@@ -346,6 +351,7 @@ export function usePatchLoader({
     onLoadStart();
     setErrorMessage(null);
     setNeedsAuth(false);
+    setNeedsAccess(false);
     setLoadState('fetching');
 
     async function loadPatch() {
@@ -439,13 +445,19 @@ export function usePatchLoader({
                 signal: controller.signal,
               });
             } catch (error) {
-              // A too-large diff (406) can still succeed through the public
-              // proxy for public repos, so fall through in that one case;
-              // re-throw everything else.
-              if (
-                !(error instanceof AuthedPatchError) ||
-                error.status !== 406
-              ) {
+              if (error instanceof AuthedPatchError) {
+                // Connected but denied (403) / not visible (404): likely an org
+                // that hasn't granted the OAuth app, or the GitHub App isn't
+                // installed on that owner. Flag needsAccess for the UI prompt.
+                if (error.status === 403 || error.status === 404) {
+                  setNeedsAccess(true);
+                }
+                // A too-large diff (406) can still succeed via the public proxy
+                // for public repos, so fall through ONLY in that case.
+                if (error.status !== 406) {
+                  throw error;
+                }
+              } else {
                 throw error;
               }
             }
@@ -740,6 +752,7 @@ export function usePatchLoader({
     initialItems,
     loadState,
     needsAuth,
+    needsAccess,
     onLineLinkChange: handleLineLinkChange,
     onViewerReady: tryApplyLineHashTarget,
     reloadComments,

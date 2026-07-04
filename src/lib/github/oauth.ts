@@ -79,6 +79,20 @@ export function isGitHubAppConfigured(): boolean {
   return getAuthMode() !== null;
 }
 
+// The active auth app's client id (public — appears in the authorize redirect).
+// Lets the client deep-link to the "manage access" / org-grant page when a
+// connected user still can't reach a repo. Null when unconfigured.
+export function getClientId(): string | null {
+  const mode = getAuthMode();
+  if (mode === 'oauth') {
+    return process.env.GITHUB_OAUTH_CLIENT_ID ?? null;
+  }
+  if (mode === 'app') {
+    return process.env.GITHUB_APP_CLIENT_ID ?? null;
+  }
+  return null;
+}
+
 export function buildAuthorizeUrl(state: string, redirectUri: string): string {
   const { clientId, mode } = getOAuthConfig();
   const url = new URL(GITHUB_AUTHORIZE_URL);

@@ -15,6 +15,7 @@ import { type AuthedUser, getAuthedUser } from '@/lib/github/reviews';
 interface SessionResponse {
   authenticated: boolean;
   configured: boolean;
+  clientId?: string | null;
   token?: string;
   expiresAt?: number | null;
 }
@@ -30,9 +31,14 @@ interface GitHubAuthValue {
   // The authenticated GitHub user (login + avatar), or null when signed out /
   // still loading. Used as the author of new review comments.
   user: AuthedUser | null;
+  // The active auth app's client id (public), for deep-linking to GitHub's
+  // "manage access" page when a connected user still can't reach a repo/org.
+  clientId: string | null;
   // Redirects into the OAuth flow, returning to `returnTo` afterwards.
   login(returnTo?: string): void;
   logout(): Promise<void>;
+  // Signs out then immediately re-initiates login (fresh token / switch account).
+  reconnect(returnTo?: string): Promise<void>;
   // Re-checks the session (also refreshes a near-expiry token server-side).
   refresh(): Promise<string | null>;
 }
@@ -44,6 +50,7 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
   const [configured, setConfigured] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthedUser | null>(null);
+  const [clientId, setClientId] = useState<string | null>(null);
 
   const refresh = useCallback(async (): Promise<string | null> => {
     try {
@@ -52,6 +59,7 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
       const nextToken = data.authenticated ? (data.token ?? null) : null;
       setConfigured(data.configured);
       setAuthenticated(data.authenticated);
+      setClientId(data.clientId ?? null);
       setToken(nextToken);
       if (nextToken != null) {
         // Fire-and-forget: the login/avatar is only used to attribute new
@@ -98,9 +106,37 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const reconnect = useCallback(
+    async (returnTo?: string) => {
+      await logout();
+      login(returnTo);
+    },
+    [logout, login]
+  );
+
   const value = useMemo<GitHubAuthValue>(
-    () => ({ authenticated, configured, token, user, login, logout, refresh }),
-    [authenticated, configured, token, user, login, logout, refresh]
+    () => ({
+      authenticated,
+      configured,
+      clientId,
+      token,
+      user,
+      login,
+      logout,
+      reconnect,
+      refresh,
+    }),
+    [
+      authenticated,
+      configured,
+      clientId,
+      token,
+      user,
+      login,
+      logout,
+      reconnect,
+      refresh,
+    ]
   );
 
   return (
