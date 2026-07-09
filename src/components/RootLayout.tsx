@@ -4,6 +4,7 @@
 // wrapped the app in GitHubAuthProvider so the viewer can read the GitHub user
 // access token for private-repo diffs.
 import { Geist, Geist_Mono } from 'next/font/google';
+import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
 
 import { GitHubAuthProvider } from '@/components/github-auth';
@@ -62,11 +63,19 @@ const themeBootstrapScript = `(${String(function applyInitialTheme() {
   }
 })})()`;
 
-export function RootLayout({
+export async function RootLayout({
   children,
 }: Readonly<{
   children: ReactNode;
 }>) {
+  // The strict CSP (see src/proxy.ts) runs on a per-request nonce + a
+  // 'strict-dynamic' script-src, so this inline bootstrap script — which is a
+  // raw <script>, not a next/script that Next would auto-nonce — must carry the
+  // nonce or the browser blocks it and the initial theme fails to apply.
+  // Reading headers() also opts the whole tree into dynamic rendering, which is
+  // what makes the nonce available during SSR in the first place.
+  const nonce = (await headers()).get('x-nonce') ?? undefined;
+
   return (
     <html
       lang="en"
@@ -80,6 +89,7 @@ export function RootLayout({
             duplicate it manages alongside ours. */}
         <script
           id="docs-theme-bootstrap"
+          nonce={nonce}
           dangerouslySetInnerHTML={{ __html: themeBootstrapScript }}
         />
       </head>
