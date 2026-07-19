@@ -366,6 +366,9 @@ export interface ReviewThread {
   line: number;
   side: 'LEFT' | 'RIGHT';
   comments: ReviewThreadComment[];
+  // True when the root's current diff line is gone (a push changed those lines)
+  // and we anchored on `original_line` instead — GitHub's "outdated" state.
+  outdated: boolean;
 }
 
 export class ReviewsError extends Error {
@@ -444,9 +447,12 @@ function parseNextLink(linkHeader: string | null): string | null {
 
 // Groups a flat comment list into threads: a root is any comment with no
 // in_reply_to_id; replies are attached to their root, sorted oldest-first.
-// Roots whose anchor line is null (the comment refers to a line no longer in
-// the diff, or a file-level comment) are skipped and counted, never silently
-// dropped.
+//
+// When a push changes the lines a comment was anchored to, GitHub reports the
+// root's `line` as null but keeps `original_line` — the thread is "outdated",
+// not gone. We keep those threads (anchored on original_line, flagged outdated)
+// so they still show in the sidebar and can be replied to. Only roots with no
+// line at all (file-level comments) are skipped and counted.
 function groupIntoThreads(comments: RawReviewComment[]): ReviewThread[] {
   const repliesByRoot = new Map<number, RawReviewComment[]>();
   const roots: RawReviewComment[] = [];
@@ -465,7 +471,11 @@ function groupIntoThreads(comments: RawReviewComment[]): ReviewThread[] {
   let skippedNoLine = 0;
 
   for (const root of roots) {
-    if (root.line == null) {
+    const outdated = root.line == null;
+    const anchorLine = root.line ?? root.original_line ?? null;
+    if (anchorLine == null) {
+      // No current line and no original line: a file-level comment we can't
+      // anchor anywhere in the diff.
       skippedNoLine++;
       continue;
     }
@@ -475,15 +485,16 @@ function groupIntoThreads(comments: RawReviewComment[]): ReviewThread[] {
     threads.push({
       rootId: root.id,
       path: root.path,
-      line: root.line,
+      line: anchorLine,
       side: root.side ?? 'RIGHT',
       comments: [root, ...replies].map(toThreadComment),
+      outdated,
     });
   }
 
   if (skippedNoLine > 0) {
     console.warn(
-      `peekdiff: skipped ${skippedNoLine} review thread(s) whose line is no longer in the diff (outdated or file-level).`
+      `peekdiff: skipped ${skippedNoLine} file-level review thread(s) with no diff line to anchor to.`
     );
   }
 
@@ -555,6 +566,7 @@ export function reviewThreadsToCommentSections(
       githubCommentId: thread.rootId,
       authorAvatarUrl: root.avatarUrl || undefined,
       githubReplies: replies.length > 0 ? replies : undefined,
+      outdated: thread.outdated || undefined,
     };
 
     let section = byItemId.get(target.itemId);

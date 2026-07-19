@@ -95,6 +95,11 @@ export interface PeekdiffSavedCommentEntry {
   githubCommentId?: number;
   authorAvatarUrl?: string;
   githubReplies?: GitHubReplyPreview[];
+  // True when the thread's anchor line no longer exists in the current diff
+  // (GitHub marks it "outdated" after a push touched those lines). Such entries
+  // are shown in the sidebar — where they can still be read and replied to — but
+  // NOT rendered inline in the diff, since there's no valid line to anchor to.
+  outdated?: boolean;
 }
 
 export interface PeekdiffSavedCommentItem {

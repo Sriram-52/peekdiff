@@ -252,14 +252,17 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
     const controller = new AbortController();
     void (async () => {
       try {
-        const { pullRequestId, viewedPaths: githubViewed } =
-          await fetchViewedState({
-            owner: pullRef.owner,
-            repo: pullRef.repo,
-            pull: Number(pullRef.pull),
-            token: githubToken,
-            signal: controller.signal,
-          });
+        const {
+          pullRequestId,
+          viewedPaths: githubViewed,
+          dismissedPaths: githubDismissed,
+        } = await fetchViewedState({
+          owner: pullRef.owner,
+          repo: pullRef.repo,
+          pull: Number(pullRef.pull),
+          token: githubToken,
+          signal: controller.signal,
+        });
         if (controller.signal.aborted) {
           return;
         }
@@ -277,6 +280,14 @@ function ReviewUIInner({ domain, initialUrl, path }: ReviewUIProps) {
           ...loadViewedFiles(path),
           ...githubViewed,
         ]);
+        // ...but honor GitHub's DISMISSED signal: a file marked viewed that has
+        // since changed on a new push. GitHub un-checks those, so we drop the
+        // stale local mark too — otherwise the pushed file stays collapsed and
+        // "Viewed" even though its contents changed. (DISMISSED is authoritative
+        // here; a plain UNVIEWED is not, so local-only marks still survive.)
+        for (const p of githubDismissed) {
+          merged.delete(p);
+        }
         setViewedPaths(merged);
         saveViewedFiles(path, merged);
       } catch (error) {

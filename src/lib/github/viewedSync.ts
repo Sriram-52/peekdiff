@@ -63,7 +63,15 @@ interface FilesQueryData {
 
 // Reads GitHub's current viewed state for the PR (paginated) and returns the
 // PR's GraphQL node id (needed for the mark/unmark mutations) plus the set of
-// paths GitHub currently considers VIEWED for this user.
+// paths GitHub currently considers VIEWED for this user, and the set it
+// considers DISMISSED.
+//
+// GitHub's viewerViewedState enum has three values: VIEWED, UNVIEWED, and
+// DISMISSED. DISMISSED means "you marked this file viewed, but it has changed
+// since" — i.e. a new push touched the file. GitHub's own PR UI un-checks the
+// "Viewed" box for those. We surface dismissedPaths separately so the caller
+// can un-view exactly those files (see ReviewUI reconcile) rather than letting
+// a stale localStorage mark keep them collapsed after a push.
 export async function fetchViewedState({
   owner,
   repo,
@@ -76,10 +84,15 @@ export async function fetchViewedState({
   pull: number;
   token: string;
   signal?: AbortSignal;
-}): Promise<{ pullRequestId: string; viewedPaths: string[] }> {
+}): Promise<{
+  pullRequestId: string;
+  viewedPaths: string[];
+  dismissedPaths: string[];
+}> {
   let cursor: string | null = null;
   let pullRequestId = '';
   const viewedPaths: string[] = [];
+  const dismissedPaths: string[] = [];
 
   for (;;) {
     const data: FilesQueryData = await githubGraphQL(
@@ -96,6 +109,8 @@ export async function fetchViewedState({
     for (const node of pr.files.nodes) {
       if (node.viewerViewedState === 'VIEWED') {
         viewedPaths.push(node.path);
+      } else if (node.viewerViewedState === 'DISMISSED') {
+        dismissedPaths.push(node.path);
       }
     }
     if (!pr.files.pageInfo.hasNextPage) {
@@ -104,7 +119,7 @@ export async function fetchViewedState({
     cursor = pr.files.pageInfo.endCursor;
   }
 
-  return { pullRequestId, viewedPaths };
+  return { pullRequestId, viewedPaths, dismissedPaths };
 }
 
 const MARK_MUTATION = `mutation($id:ID!,$path:String!){markFileAsViewed(input:{pullRequestId:$id,path:$path}){clientMutationId}}`;

@@ -220,6 +220,11 @@ export function usePatchLoader({
       const byItem = new Map<string, DiffLineAnnotation<CommentMetadata>[]>();
       for (const section of sections) {
         for (const entry of section.comments) {
+          // Outdated threads have no valid line in the current diff, so they're
+          // shown in the sidebar only — skip them here to avoid mis-anchoring.
+          if (entry.outdated === true) {
+            continue;
+          }
           const annotation: DiffLineAnnotation<CommentMetadata> = {
             side: entry.side,
             lineNumber: entry.lineNumber,

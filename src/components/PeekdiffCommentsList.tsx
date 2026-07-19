@@ -184,6 +184,14 @@ export const PeekdiffCommentsList = memo(function PeekdiffCommentsList({
                             Pending
                           </span>
                         )}
+                        {comment.outdated === true && (
+                          <span
+                            className="rounded-full bg-[color-mix(in_srgb,currentColor_18%,transparent)] px-1.5 text-[10px] leading-4 font-medium uppercase"
+                            title="This line changed since the comment was made"
+                          >
+                            Outdated
+                          </span>
+                        )}
                       </div>
                       <CommentMarkdown
                         text={comment.message}
